@@ -1,105 +1,124 @@
-const generateExcelData = (clients) => {
-  const headers = [
-    'Nombre', 
-    'Saldo Actual', 
-    'Fecha Registro', 
-    'Total Transacciones'
-  ];
+import XLSX from 'xlsx';
 
-  const data = clients.map(client => [
-    client.name,
-    client.balance,
-    new Date(client.createdAt).toLocaleDateString(),
-    client.transactions.length
-  ]);
-
-  return { headers, data };
+const groupTransactionsByClient = (transactions) => {
+  const grouped = {};
+  transactions.forEach(tx => {
+    if (!grouped[tx.clientName]) {
+      grouped[tx.clientName] = [];
+    }
+    grouped[tx.clientName].push(tx);
+  });
+  return grouped;
 };
 
-const generatePDFContent = (clients) => {
-  const generateTransactionTable = (transactions) => {
-    return transactions.map(t => `
-      <tr>
-        <td>${new Date(t.timestamp).toLocaleString()}</td>
-        <td>${t.type}</td>
-        <td>$${Math.abs(t.amount).toLocaleString()}</td>
-      </tr>
-    `).join('');
-  };
+// 📦 Exportar a Excel
+export const exportToExcel = (transactions) => {
+  const wb = XLSX.utils.book_new();
+  const grouped = groupTransactionsByClient(transactions);
 
-  const clientsHTML = clients.map(client => `
-    <div style="margin-bottom: 20px; border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px;">
-      <h2>${client.name}</h2>
-      <p>Saldo Actual: $${client.balance.toLocaleString()}</p>
-      <p>Fecha Registro: ${new Date(client.createdAt).toLocaleDateString()}</p>
-      
-      <h3>Historial de Transacciones</h3>
-      <table border="1" style="width: 100%; border-collapse: collapse;">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th>Monto</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${generateTransactionTable(client.transactions)}
-        </tbody>
-      </table>
-    </div>
-  `).join('');
+  // 📄 Hoja de resumen
+  const resumenData = Object.entries(grouped).map(([clientName, txs]) => {
+    const ingresos = txs.filter(t => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
+    const egresos = txs.filter(t => t.amount < 0).reduce((acc, t) => acc + t.amount, 0);
+    const saldo = ingresos + egresos;
+    return {
+      Cliente: clientName,
+      Ingresos: ingresos,
+      Egresos: Math.abs(egresos),
+      'Saldo Disponible': saldo
+    };
+  });
 
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Reporte Financiero Novacoin OTC</title>
-        <style>
-          body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; }
-          table { margin-top: 10px; }
-          th, td { padding: 8px; text-align: left; }
-        </style>
-      </head>
-      <body>
-        <h1>Reporte Financiero Novacoin OTC</h1>
-        <p>Fecha de Generación: ${new Date().toLocaleString()}</p>
-        ${clientsHTML}
-      </body>
-    </html>
-  `;
-};
+  const resumenSheet = XLSX.utils.json_to_sheet(resumenData);
+  XLSX.utils.book_append_sheet(wb, resumenSheet, 'Resumen General');
 
-export const exportToExcel = (clients) => {
-  const { headers, data } = generateExcelData(clients);
-  
-  const worksheet = [headers, ...data];
-  const csvContent = worksheet.map(e => e.join(",")).join("\n");
-  
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement("a");
-  
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "novacoin_report.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-};
+  // 📄 Hojas por cliente
+  Object.entries(grouped).forEach(([clientName, txs]) => {
+    const sorted = [...txs].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const rows = sorted.map(t => ({
+      Fecha: new Date(t.timestamp).toLocaleString(),
+      Concepto: t.concept || '',
+      Ingreso: t.amount > 0 ? t.amount : '',
+      Egreso: t.amount < 0 ? Math.abs(t.amount) : ''
+    }));
+    const sheet = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, sheet, clientName.substring(0, 31));
+  });
 
-export const exportToPDF = (clients) => {
-  const pdfContent = generatePDFContent(clients);
-  const blob = new Blob([pdfContent], { type: 'text/html' });
+  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
   const link = document.createElement('a');
-  
   link.href = URL.createObjectURL(blob);
-  link.download = 'novacoin_report.html';
+  link.download = 'novacoin_export.xlsx';
   link.click();
 };
 
-// Resto de los archivos permanecen igual que en la versión anterior, 
-// solo cambiando referencias de "FinTrack Pro" a "Novacoin OTC"
+// 📄 Exportar a PDF (como HTML embebido)
+export const exportToPDF = (transactions) => {
+  const grouped = groupTransactionsByClient(transactions);
 
-// DONE
+  const content = Object.entries(grouped).map(([clientName, txs]) => {
+    const ingresos = txs.filter(t => t.amount > 0).reduce((acc, t) => acc + t.amount, 0);
+    const egresos = txs.filter(t => t.amount < 0).reduce((acc, t) => acc + t.amount, 0);
+    const saldo = ingresos + egresos;
+
+    const rows = txs
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .map(t => `
+        <tr>
+          <td>${new Date(t.timestamp).toLocaleString()}</td>
+          <td>${t.concept || ''}</td>
+          <td>${t.amount > 0 ? `$${t.amount.toLocaleString()}` : ''}</td>
+          <td>${t.amount < 0 ? `$${Math.abs(t.amount).toLocaleString()}` : ''}</td>
+        </tr>
+      `).join('');
+
+    return `
+      <div style="margin-bottom: 30px; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+        <h2>${clientName}</h2>
+        <p><strong>Ingresos:</strong> $${ingresos.toLocaleString()}</p>
+        <p><strong>Egresos:</strong> $${Math.abs(egresos).toLocaleString()}</p>
+        <p><strong>Saldo Disponible:</strong> $${saldo.toLocaleString()}</p>
+
+        <table width="100%" border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-top: 10px;">
+          <thead>
+            <tr style="background: #f0f0f0;">
+              <th>Fecha</th>
+              <th>Concepto</th>
+              <th>Ingreso</th>
+              <th>Egreso</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Reporte Novacoin OTC</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          h1 { text-align: center; margin-bottom: 40px; }
+        </style>
+      </head>
+      <body>
+        <h1>Reporte Novacoin OTC</h1>
+        <p>Fecha de generación: ${new Date().toLocaleString()}</p>
+        ${content}
+      </body>
+    </html>
+  `;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'novacoin_reporte.html';
+  link.click();
+};

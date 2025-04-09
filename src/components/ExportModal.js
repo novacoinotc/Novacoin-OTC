@@ -1,14 +1,14 @@
 import React from 'react';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
-const ExportModal = ({ clients, onClose }) => {
+const ExportModal = ({ transactions, onClose }) => {
   const handleExportExcel = () => {
-    exportToExcel(clients);
+    exportToExcel(transactions);
     onClose();
   };
 
   const handleExportPDF = () => {
-    exportToPDF(clients);
+    exportToPDF(transactions);
     onClose();
   };
 
