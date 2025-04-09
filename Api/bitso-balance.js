@@ -1,9 +1,9 @@
-// Archivo: /api/bitso-balance.js
+// Archivo: pages/api/bitso-balance.js
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
-  const API_KEY = qArJaheQok;
-  const API_SECRET = dd2f54311d90b26fcf234fec29efc197;
+  const API_KEY = process.env.BITSO_API_KEY;
+  const API_SECRET = process.env.BITSO_API_SECRET;
 
   const nonce = Date.now().toString();
   const method = 'GET';
@@ -14,13 +14,13 @@ export default async function handler(req, res) {
     .digest('hex');
 
   const headers = {
-    'Authorization': `Bitso ${API_KEY}:${nonce}:${signature}`,
+    Authorization: `Bitso ${API_KEY}:${nonce}:${signature}`,
   };
 
   try {
     const response = await fetch(`https://api.bitso.com${requestPath}`, {
       method,
-      headers
+      headers,
     });
 
     const data = await response.json();
