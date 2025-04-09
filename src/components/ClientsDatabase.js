@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import ClientTransactionModal from './ClientTransactionModal';
 import ClientHistoryModal from './ClientHistoryModal';
 
+import {
+  deleteClientFromFirebase,
+  deleteTransactionFromFirebase,
+  updateTransactionInFirebase
+} from '../firebase/firebaseUploader'; // 🔁 Asegúrate de que esta ruta sea correcta
+
 const ClientsDatabase = ({ clients, updateClients }) => {
   const [newClient, setNewClient] = useState({ name: '', balance: 0 });
   const [selectedClient, setSelectedClient] = useState(null);
@@ -11,7 +17,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
     if (newClient.name && newClient.balance !== undefined) {
       const clientToAdd = {
         ...newClient,
-        id: crypto.randomUUID(), // ✅ ID único y persistente
+        id: crypto.randomUUID(),
         transactions: [],
         createdAt: new Date().toISOString()
       };
@@ -25,13 +31,15 @@ const ClientsDatabase = ({ clients, updateClients }) => {
     const updatedClients = clients.map(client => {
       if (client.id === clientId) {
         const newBalance = client.balance + transaction.amount;
+        const newTransaction = {
+          ...transaction,
+          timestamp: new Date().toISOString(),
+          id: crypto.randomUUID() // 🔁 Generar ID único para Firebase
+        };
         return {
           ...client,
           balance: newBalance,
-          transactions: [...client.transactions, {
-            ...transaction,
-            timestamp: new Date().toISOString()
-          }]
+          transactions: [...client.transactions, newTransaction]
         };
       }
       return client;
@@ -46,14 +54,21 @@ const ClientsDatabase = ({ clients, updateClients }) => {
           t => t.timestamp === updatedTransaction.timestamp
         );
         const balanceDifference = updatedTransaction.amount - originalTransaction.amount;
-        
-        return {
+
+        const updatedClient = {
           ...client,
           balance: client.balance + balanceDifference,
-          transactions: client.transactions.map(t => 
+          transactions: client.transactions.map(t =>
             t.timestamp === updatedTransaction.timestamp ? updatedTransaction : t
           )
         };
+
+        // 🔁 Actualizar en Firebase
+        if (updatedTransaction.id) {
+          updateTransactionInFirebase(clientId, updatedTransaction);
+        }
+
+        return updatedClient;
       }
       return client;
     });
@@ -63,13 +78,20 @@ const ClientsDatabase = ({ clients, updateClients }) => {
   const handleDeleteTransaction = (clientId, transactionToDelete) => {
     const updatedClients = clients.map(client => {
       if (client.id === clientId) {
-        return {
+        const updatedClient = {
           ...client,
           balance: client.balance - transactionToDelete.amount,
           transactions: client.transactions.filter(
             t => t.timestamp !== transactionToDelete.timestamp
           )
         };
+
+        // 🔁 Eliminar de Firebase
+        if (transactionToDelete.id) {
+          deleteTransactionFromFirebase(clientId, transactionToDelete.id);
+        }
+
+        return updatedClient;
       }
       return client;
     });
@@ -79,6 +101,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
   const handleDeleteClient = (clientId) => {
     const updatedClients = clients.filter(client => client.id !== clientId);
     updateClients(updatedClients);
+    deleteClientFromFirebase(clientId); // 🔁 También eliminar en Firebase
   };
 
   return (
