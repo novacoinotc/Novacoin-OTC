@@ -45,9 +45,9 @@ const ClientHistoryModal = ({ client, onClose, onUpdateTransaction, onDeleteTran
                 </tr>
               </thead>
               <tbody>
-                {sortedTransactions.map((transaction, index) => (
+                {sortedTransactions.map((transaction) => (
                   <tr 
-                    key={index} 
+                    key={transaction.id} 
                     className="border-b hover:bg-gray-50 transition-colors"
                   >
                     <td className="p-4 text-gray-600">

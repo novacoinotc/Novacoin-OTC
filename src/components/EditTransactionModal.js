@@ -11,6 +11,7 @@ const EditTransactionModal = ({ transaction, client, onClose, onUpdate, onDelete
   const handleSave = () => {
     const updatedTransaction = {
       ...transaction,
+      id: transaction.id, // ✅ aseguramos que el id esté presente
       type: editedTransaction.type,
       amount: editedTransaction.type === 'withdraw' 
         ? -Math.abs(editedTransaction.amount) 
@@ -119,5 +120,3 @@ const EditTransactionModal = ({ transaction, client, onClose, onUpdate, onDelete
 };
 
 export default EditTransactionModal;
-
-// DONE

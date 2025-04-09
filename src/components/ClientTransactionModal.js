@@ -14,7 +14,8 @@ const ClientTransactionModal = ({ client, onClose, onTransaction }) => {
         amount: transaction.type === 'deposit' 
           ? Math.abs(Number(transaction.amount)) 
           : -Math.abs(Number(transaction.amount)),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        id: crypto.randomUUID() // ✅ Generar ID único para Firebase
       };
       
       onTransaction(client.id, finalTransaction);
