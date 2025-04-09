@@ -11,7 +11,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
     if (newClient.name && newClient.balance !== undefined) {
       const clientToAdd = {
         ...newClient,
-        id: Date.now(),
+        id: crypto.randomUUID(), // ✅ ID único y persistente
         transactions: [],
         createdAt: new Date().toISOString()
       };
@@ -88,14 +88,14 @@ const ClientsDatabase = ({ clients, updateClients }) => {
           type="text"
           placeholder="Nombre del Cliente"
           value={newClient.name}
-          onChange={(e) => setNewClient({...newClient, name: e.target.value})}
+          onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
         />
         <input
           type="number"
           placeholder="Saldo Inicial"
           value={newClient.balance}
-          onChange={(e) => setNewClient({...newClient, balance: Number(e.target.value)})}
+          onChange={(e) => setNewClient({ ...newClient, balance: Number(e.target.value) })}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
         />
         <button 
@@ -179,5 +179,3 @@ const ClientsDatabase = ({ clients, updateClients }) => {
 };
 
 export default ClientsDatabase;
-
-// DONE
