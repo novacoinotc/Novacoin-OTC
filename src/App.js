@@ -5,11 +5,12 @@ import TabNavigation from './components/TabNavigation';
 import GeneralBalanceView from './components/GeneralBalanceView';
 import ClientsDatabase from './components/ClientsDatabase';
 import TransactionsView from './components/TransactionsView';
-import { uploadClientsToFirebase } from './firebase/firebaseUploader'; // ✅ ruta corregida
+import { uploadClientsToFirebase } from './firebase/firebaseUploader';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(2);
   const [clients, setClients] = useState([]);
+  const [syncMessage, setSyncMessage] = useState(''); // ✅ Nuevo estado para mensaje
 
   useEffect(() => {
     const savedClients = getClientsFromLocalStorage();
@@ -27,7 +28,14 @@ const App = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (clients.length > 0) {
-        uploadClientsToFirebase(clients);
+        uploadClientsToFirebase(clients)
+          .then(() => {
+            const now = new Date().toLocaleTimeString();
+            setSyncMessage(`✅ Última sincronización: ${now}`);
+          })
+          .catch(() => {
+            setSyncMessage("❌ Error al sincronizar con Firebase");
+          });
       }
     }, 5000);
 
@@ -39,6 +47,10 @@ const App = () => {
       <LayoutHeader />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        {syncMessage && (
+          <div className="text-sm text-green-600 mb-4 text-center">{syncMessage}</div>
+        )}
 
         {activeTab === 1 && (
           <GeneralBalanceView clients={clients} />
