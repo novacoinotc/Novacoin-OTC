@@ -5,26 +5,39 @@ import TabNavigation from './components/TabNavigation';
 import GeneralBalanceView from './components/GeneralBalanceView';
 import ClientsDatabase from './components/ClientsDatabase';
 import TransactionsView from './components/TransactionsView';
-import { uploadClientsToFirebase } from './firebase/firebaseUploader';
+import { uploadClientsToFirebase, loadClientsFromFirebase } from './firebase/firebaseUploader';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(2);
   const [clients, setClients] = useState([]);
-  const [syncMessage, setSyncMessage] = useState(''); // ✅ Nuevo estado para mensaje
+  const [syncMessage, setSyncMessage] = useState('');
 
+  // Cargar datos desde Firebase al iniciar
   useEffect(() => {
-    const savedClients = getClientsFromLocalStorage();
-    if (savedClients.length > 0) {
-      setClients(savedClients);
-    }
+    const fetchClients = async () => {
+      const firebaseClients = await loadClientsFromFirebase();
+
+      if (firebaseClients.length > 0) {
+        setClients(firebaseClients);
+        saveClientsToLocalStorage(firebaseClients);
+      } else {
+        const savedClients = getClientsFromLocalStorage();
+        if (savedClients.length > 0) {
+          setClients(savedClients);
+        }
+      }
+    };
+
+    fetchClients();
   }, []);
 
+  // Actualizar y guardar localmente
   const updateClients = (newClients) => {
     setClients(newClients);
     saveClientsToLocalStorage(newClients);
   };
 
-  // ✅ Guardado automático en Firebase cada 5 segundos
+  // Guardado automático en Firebase cada 5 segundos
   useEffect(() => {
     const interval = setInterval(() => {
       if (clients.length > 0) {
@@ -49,7 +62,7 @@ const App = () => {
         <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {syncMessage && (
-          <div className="text-sm text-green-600 mb-4 text-center">{syncMessage}</div>
+          <div className="text-sm text-center mb-4 text-green-600">{syncMessage}</div>
         )}
 
         {activeTab === 1 && (
