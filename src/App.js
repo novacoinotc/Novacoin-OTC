@@ -6,24 +6,32 @@ import GeneralBalanceView from './components/GeneralBalanceView';
 import ClientsDatabase from './components/ClientsDatabase';
 import TransactionsView from './components/TransactionsView';
 import { uploadClientsToFirebase, loadClientsFromFirebase } from './firebase/firebaseUploader';
+import ExchangeRate from './components/ExchangeRate'; // ✅ Nuevo import
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(2);
   const [clients, setClients] = useState([]);
   const [syncMessage, setSyncMessage] = useState('');
 
-  // Cargar desde Firebase al iniciar
+  // 🔄 Siempre cargar desde Firebase primero (local solo como respaldo)
   useEffect(() => {
     const fetchClients = async () => {
-      const firebaseClients = await loadClientsFromFirebase();
-
-      if (firebaseClients.length > 0) {
-        setClients(firebaseClients);
-        saveClientsToLocalStorage(firebaseClients);
-      } else {
-        const savedClients = getClientsFromLocalStorage();
-        if (savedClients.length > 0) {
-          setClients(savedClients);
+      try {
+        const firebaseClients = await loadClientsFromFirebase();
+        if (firebaseClients.length > 0) {
+          setClients(firebaseClients);
+          saveClientsToLocalStorage(firebaseClients); // respaldo
+        } else {
+          const localClients = getClientsFromLocalStorage();
+          if (localClients.length > 0) {
+            setClients(localClients);
+          }
+        }
+      } catch (error) {
+        console.error('Error cargando desde Firebase:', error);
+        const localClients = getClientsFromLocalStorage();
+        if (localClients.length > 0) {
+          setClients(localClients);
         }
       }
     };
@@ -31,13 +39,13 @@ const App = () => {
     fetchClients();
   }, []);
 
-  // Actualizar datos localmente
+  // ✅ Actualizar clientes y guardar localmente (sin duplicación)
   const updateClients = (newClients) => {
     setClients(newClients);
-    saveClientsToLocalStorage(newClients);
+    saveClientsToLocalStorage(newClients); // copia local inmediata
   };
 
-  // 🔁 Guardado automático en Firebase cada 5s, sin duplicación
+  // 🔁 Guardado automático en Firebase cada 5 segundos
   useEffect(() => {
     const interval = setInterval(() => {
       if (clients.length > 0) {
@@ -47,7 +55,7 @@ const App = () => {
             setSyncMessage(`✅ Última sincronización: ${now}`);
           })
           .catch(() => {
-            setSyncMessage("❌ Error al sincronizar con Firebase");
+            setSyncMessage('❌ Error al sincronizar con Firebase');
           });
       }
     }, 5000);
@@ -58,6 +66,7 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pt-20">
       <LayoutHeader />
+      <ExchangeRate /> {/* ✅ Mostrar tipo de cambio USD/MXN en tiempo real */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
