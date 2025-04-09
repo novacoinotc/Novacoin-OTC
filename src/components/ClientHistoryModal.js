@@ -17,17 +17,15 @@ const ClientHistoryModal = ({ client, onClose, onUpdateTransaction, onDeleteTran
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl shadow-2xl w-[800px] max-h-[80vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-2xl font-bold">
-            Historial de {client.name}
-          </h2>
-          <button 
-            onClick={onClose} 
+          <h2 className="text-2xl font-bold">Historial de {client.name}</h2>
+          <button
+            onClick={onClose}
             className="text-gray-500 hover:text-black transition-colors"
           >
             ✕
           </button>
         </div>
-        
+
         <div className="overflow-y-auto flex-grow">
           {sortedTransactions.length === 0 ? (
             <div className="text-center py-10 text-gray-500">
@@ -46,8 +44,8 @@ const ClientHistoryModal = ({ client, onClose, onUpdateTransaction, onDeleteTran
               </thead>
               <tbody>
                 {sortedTransactions.map((transaction) => (
-                  <tr 
-                    key={transaction.id} 
+                  <tr
+                    key={transaction.id}
                     className="border-b hover:bg-gray-50 transition-colors"
                   >
                     <td className="p-4 text-gray-600">
@@ -56,8 +54,8 @@ const ClientHistoryModal = ({ client, onClose, onUpdateTransaction, onDeleteTran
                     <td className="p-4">
                       <span className={`
                         px-2 py-1 rounded-full text-xs font-semibold
-                        ${transaction.amount > 0 
-                          ? 'bg-green-100 text-green-800' 
+                        ${transaction.amount > 0
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                         }
                       `}>
@@ -66,8 +64,8 @@ const ClientHistoryModal = ({ client, onClose, onUpdateTransaction, onDeleteTran
                     </td>
                     <td className={`
                       p-4 text-right font-semibold
-                      ${transaction.amount > 0 
-                        ? 'text-green-600' 
+                      ${transaction.amount > 0
+                        ? 'text-green-600'
                         : 'text-red-600'
                       }
                     `}>

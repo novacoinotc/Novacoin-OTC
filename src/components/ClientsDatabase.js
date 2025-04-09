@@ -6,7 +6,7 @@ import {
   deleteClientFromFirebase,
   deleteTransactionFromFirebase,
   updateTransactionInFirebase
-} from '../firebase/firebaseUploader'; // 🔁 Asegúrate de que esta ruta sea correcta
+} from '../firebase/firebaseUploader';
 
 const ClientsDatabase = ({ clients, updateClients }) => {
   const [newClient, setNewClient] = useState({ name: '', balance: 0 });
@@ -21,8 +21,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
         transactions: [],
         createdAt: new Date().toISOString()
       };
-      const updatedClients = [...clients, clientToAdd];
-      updateClients(updatedClients);
+      updateClients([...clients, clientToAdd]);
       setNewClient({ name: '', balance: 0 });
     }
   };
@@ -30,15 +29,14 @@ const ClientsDatabase = ({ clients, updateClients }) => {
   const handleTransaction = (clientId, transaction) => {
     const updatedClients = clients.map(client => {
       if (client.id === clientId) {
-        const newBalance = client.balance + transaction.amount;
         const newTransaction = {
           ...transaction,
           timestamp: new Date().toISOString(),
-          id: crypto.randomUUID() // 🔁 Generar ID único para Firebase
+          id: crypto.randomUUID()
         };
         return {
           ...client,
-          balance: newBalance,
+          balance: client.balance + newTransaction.amount,
           transactions: [...client.transactions, newTransaction]
         };
       }
@@ -50,58 +48,49 @@ const ClientsDatabase = ({ clients, updateClients }) => {
   const handleUpdateTransaction = (clientId, updatedTransaction) => {
     const updatedClients = clients.map(client => {
       if (client.id === clientId) {
-        const originalTransaction = client.transactions.find(
-          t => t.timestamp === updatedTransaction.timestamp
+        const original = client.transactions.find(t => t.id === updatedTransaction.id);
+        const balanceDiff = updatedTransaction.amount - original.amount;
+
+        const newTransactions = client.transactions.map(t =>
+          t.id === updatedTransaction.id ? updatedTransaction : t
         );
-        const balanceDifference = updatedTransaction.amount - originalTransaction.amount;
 
         const updatedClient = {
           ...client,
-          balance: client.balance + balanceDifference,
-          transactions: client.transactions.map(t =>
-            t.timestamp === updatedTransaction.timestamp ? updatedTransaction : t
-          )
+          balance: client.balance + balanceDiff,
+          transactions: newTransactions
         };
 
-        // 🔁 Actualizar en Firebase
-        if (updatedTransaction.id) {
-          updateTransactionInFirebase(clientId, updatedTransaction);
-        }
-
+        updateTransactionInFirebase(clientId, updatedTransaction);
         return updatedClient;
       }
       return client;
     });
+
     updateClients(updatedClients);
   };
 
   const handleDeleteTransaction = (clientId, transactionToDelete) => {
     const updatedClients = clients.map(client => {
       if (client.id === clientId) {
-        const updatedClient = {
+        const newTransactions = client.transactions.filter(t => t.id !== transactionToDelete.id);
+        return {
           ...client,
           balance: client.balance - transactionToDelete.amount,
-          transactions: client.transactions.filter(
-            t => t.timestamp !== transactionToDelete.timestamp
-          )
+          transactions: newTransactions
         };
-
-        // 🔁 Eliminar de Firebase
-        if (transactionToDelete.id) {
-          deleteTransactionFromFirebase(clientId, transactionToDelete.id);
-        }
-
-        return updatedClient;
       }
       return client;
     });
+
     updateClients(updatedClients);
+    deleteTransactionFromFirebase(clientId, transactionToDelete.id);
   };
 
   const handleDeleteClient = (clientId) => {
     const updatedClients = clients.filter(client => client.id !== clientId);
     updateClients(updatedClients);
-    deleteClientFromFirebase(clientId); // 🔁 También eliminar en Firebase
+    deleteClientFromFirebase(clientId);
   };
 
   return (
@@ -121,7 +110,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
           onChange={(e) => setNewClient({ ...newClient, balance: Number(e.target.value) })}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
         />
-        <button 
+        <button
           onClick={handleAddClient}
           className="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
         >
@@ -155,19 +144,19 @@ const ClientsDatabase = ({ clients, updateClients }) => {
                     {new Date(client.createdAt).toLocaleDateString()}
                   </td>
                   <td className="p-2 flex space-x-2">
-                    <button 
+                    <button
                       onClick={() => setSelectedClient(client)}
                       className="text-blue-600 hover:text-blue-800 transition-colors"
                     >
                       Movimientos
                     </button>
-                    <button 
+                    <button
                       onClick={() => setHistoryClient(client)}
                       className="text-green-600 hover:text-green-800 transition-colors"
                     >
                       Historial
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteClient(client.id)}
                       className="text-red-600 hover:text-red-800 transition-colors"
                     >
@@ -182,7 +171,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
       )}
 
       {selectedClient && (
-        <ClientTransactionModal 
+        <ClientTransactionModal
           client={selectedClient}
           onClose={() => setSelectedClient(null)}
           onTransaction={handleTransaction}
@@ -190,7 +179,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
       )}
 
       {historyClient && (
-        <ClientHistoryModal 
+        <ClientHistoryModal
           client={historyClient}
           onClose={() => setHistoryClient(null)}
           onUpdateTransaction={handleUpdateTransaction}

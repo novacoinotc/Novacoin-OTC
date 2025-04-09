@@ -11,13 +11,13 @@ const ClientTransactionModal = ({ client, onClose, onTransaction }) => {
     if (transaction.amount && Number(transaction.amount) > 0) {
       const finalTransaction = {
         ...transaction,
-        amount: transaction.type === 'deposit' 
-          ? Math.abs(Number(transaction.amount)) 
+        amount: transaction.type === 'deposit'
+          ? Math.abs(Number(transaction.amount))
           : -Math.abs(Number(transaction.amount)),
         timestamp: new Date().toISOString(),
-        id: crypto.randomUUID() // ✅ Generar ID único para Firebase
+        id: crypto.randomUUID() // ✅ ID único para Firebase
       };
-      
+
       onTransaction(client.id, finalTransaction);
       onClose();
     }
@@ -35,18 +35,18 @@ const ClientTransactionModal = ({ client, onClose, onTransaction }) => {
         <h2 className="text-2xl font-bold mb-6 text-center">
           Nuevo Movimiento para {client.name}
         </h2>
-        
+
         <div className="mb-4">
           <label className="block text-gray-700 mb-2">Tipo de Transacción</label>
           <div className="flex space-x-2">
             {['deposit', 'withdraw'].map(type => (
               <button
                 key={type}
-                onClick={() => setTransaction({...transaction, type})}
+                onClick={() => setTransaction({ ...transaction, type })}
                 className={`
                   px-4 py-2 rounded-full transition-all 
-                  ${transaction.type === type 
-                    ? 'bg-black text-white' 
+                  ${transaction.type === type
+                    ? 'bg-black text-white'
                     : 'text-gray-600 hover:bg-gray-200'
                   }
                 `}
@@ -59,33 +59,27 @@ const ClientTransactionModal = ({ client, onClose, onTransaction }) => {
 
         <div className="mb-4">
           <label className="block text-gray-700 mb-2">Monto</label>
-          <input 
-            type="number" 
+          <input
+            type="number"
             placeholder="Ingrese el monto"
             value={transaction.amount}
-            onChange={(e) => setTransaction({
-              ...transaction, 
-              amount: e.target.value
-            })}
+            onChange={(e) => setTransaction({ ...transaction, amount: e.target.value })}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
           />
         </div>
 
         <div className="mb-4">
           <label className="block text-gray-700 mb-2">Concepto (Opcional)</label>
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Descripción del movimiento"
             value={transaction.concept}
-            onChange={(e) => setTransaction({
-              ...transaction, 
-              concept: e.target.value
-            })}
+            onChange={(e) => setTransaction({ ...transaction, concept: e.target.value })}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
           />
         </div>
 
-        <button 
+        <button
           onClick={handleTransactionSubmit}
           className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors"
           disabled={!transaction.amount}
