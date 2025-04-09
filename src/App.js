@@ -12,7 +12,7 @@ const App = () => {
   const [clients, setClients] = useState([]);
   const [syncMessage, setSyncMessage] = useState('');
 
-  // Cargar datos desde Firebase al iniciar
+  // Cargar desde Firebase al iniciar
   useEffect(() => {
     const fetchClients = async () => {
       const firebaseClients = await loadClientsFromFirebase();
@@ -31,13 +31,13 @@ const App = () => {
     fetchClients();
   }, []);
 
-  // Actualizar y guardar localmente
+  // Actualizar datos localmente
   const updateClients = (newClients) => {
     setClients(newClients);
     saveClientsToLocalStorage(newClients);
   };
 
-  // Guardado automático en Firebase cada 5 segundos
+  // 🔁 Guardado automático en Firebase cada 5s, sin duplicación
   useEffect(() => {
     const interval = setInterval(() => {
       if (clients.length > 0) {

@@ -6,13 +6,15 @@ import {
   getDocs
 } from 'firebase/firestore';
 
-// 🔼 Subir clientes + transacciones
+// 🔼 Subir clientes + transacciones (con control de duplicados)
 export const uploadClientsToFirebase = async (clientsData) => {
   const batch = writeBatch(db);
 
   try {
     for (const client of clientsData) {
-      const clientRef = doc(collection(db, 'clients'));
+      // Usar el id existente o generar uno nuevo
+      const clientId = client.id || doc(collection(db, 'clients')).id;
+      const clientRef = doc(db, 'clients', clientId);
 
       const clientDocData = {
         name: client.name,
@@ -26,7 +28,9 @@ export const uploadClientsToFirebase = async (clientsData) => {
         const transactionsCollectionRef = collection(clientRef, 'transactions');
 
         client.transactions.forEach(transaction => {
-          const transactionRef = doc(transactionsCollectionRef);
+          const transactionId = transaction.id || doc(transactionsCollectionRef).id;
+          const transactionRef = doc(transactionsCollectionRef, transactionId);
+
           const transactionData = {
             ...transaction,
             timestamp: transaction.timestamp || new Date().toISOString()
@@ -82,7 +86,7 @@ export const uploadClientsFromLocalData = async () => {
   }
 };
 
-// 🔽 Descargar clientes + transacciones
+// 🔽 Descargar clientes + transacciones (respetando el ID)
 export const loadClientsFromFirebase = async () => {
   try {
     const clientsCollection = collection(db, 'clients');
@@ -90,12 +94,16 @@ export const loadClientsFromFirebase = async () => {
 
     const clients = await Promise.all(snapshot.docs.map(async docSnap => {
       const client = docSnap.data();
-      client.id = docSnap.id;
+      client.id = docSnap.id; // <- asigna el ID a cada cliente
 
       const transactionsCollectionRef = collection(doc(db, 'clients', client.id), 'transactions');
       const txSnapshot = await getDocs(transactionsCollectionRef);
 
-      client.transactions = txSnapshot.docs.map(txDoc => txDoc.data());
+      client.transactions = txSnapshot.docs.map(txDoc => {
+        const tx = txDoc.data();
+        tx.id = txDoc.id; // <- también guardar el id de la transacción
+        return tx;
+      });
 
       return client;
     }));
