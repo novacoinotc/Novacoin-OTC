@@ -4,7 +4,8 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
   const tabs = [
     { id: 1, name: 'Saldo General' },
     { id: 2, name: 'Base de Clientes' },
-    { id: 3, name: 'Movimientos' }
+    { id: 3, name: 'Movimientos' },
+    { id: 4, name: 'Bitso' } // ✅ Nueva pestaña
   ];
 
   return (

@@ -6,46 +6,41 @@ import GeneralBalanceView from './components/GeneralBalanceView';
 import ClientsDatabase from './components/ClientsDatabase';
 import TransactionsView from './components/TransactionsView';
 import { uploadClientsToFirebase, loadClientsFromFirebase } from './firebase/firebaseUploader';
-import ExchangeRate from './components/ExchangeRate'; // ✅ Nuevo import
+import BitsoPanel from './components/BitsoPanel'; // ✅ Pestaña dedicada a Bitso
 
 const App = () => {
   const [activeTab, setActiveTab] = useState(2);
   const [clients, setClients] = useState([]);
   const [syncMessage, setSyncMessage] = useState('');
 
-  // 🔄 Siempre cargar desde Firebase primero (local solo como respaldo)
+  // 🔄 Cargar clientes desde Firebase primero (local como respaldo)
   useEffect(() => {
     const fetchClients = async () => {
       try {
         const firebaseClients = await loadClientsFromFirebase();
         if (firebaseClients.length > 0) {
           setClients(firebaseClients);
-          saveClientsToLocalStorage(firebaseClients); // respaldo
+          saveClientsToLocalStorage(firebaseClients);
         } else {
           const localClients = getClientsFromLocalStorage();
-          if (localClients.length > 0) {
-            setClients(localClients);
-          }
+          if (localClients.length > 0) setClients(localClients);
         }
       } catch (error) {
         console.error('Error cargando desde Firebase:', error);
         const localClients = getClientsFromLocalStorage();
-        if (localClients.length > 0) {
-          setClients(localClients);
-        }
+        if (localClients.length > 0) setClients(localClients);
       }
     };
 
     fetchClients();
   }, []);
 
-  // ✅ Actualizar clientes y guardar localmente (sin duplicación)
   const updateClients = (newClients) => {
     setClients(newClients);
-    saveClientsToLocalStorage(newClients); // copia local inmediata
+    saveClientsToLocalStorage(newClients);
   };
 
-  // 🔁 Guardado automático en Firebase cada 5 segundos
+  // 🔁 Sincronización automática con Firebase
   useEffect(() => {
     const interval = setInterval(() => {
       if (clients.length > 0) {
@@ -66,7 +61,6 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pt-20">
       <LayoutHeader />
-      <ExchangeRate /> {/* ✅ Mostrar tipo de cambio USD/MXN en tiempo real */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -74,20 +68,10 @@ const App = () => {
           <div className="text-sm text-center mb-4 text-green-600">{syncMessage}</div>
         )}
 
-        {activeTab === 1 && (
-          <GeneralBalanceView clients={clients} />
-        )}
-
-        {activeTab === 2 && (
-          <ClientsDatabase 
-            clients={clients} 
-            updateClients={updateClients} 
-          />
-        )}
-
-        {activeTab === 3 && (
-          <TransactionsView clients={clients} />
-        )}
+        {activeTab === 1 && <GeneralBalanceView clients={clients} />}
+        {activeTab === 2 && <ClientsDatabase clients={clients} updateClients={updateClients} />}
+        {activeTab === 3 && <TransactionsView clients={clients} />}
+        {activeTab === 4 && <BitsoPanel />} {/* ✅ Todo sobre Bitso */}
       </div>
     </div>
   );
