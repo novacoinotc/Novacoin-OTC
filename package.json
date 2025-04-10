@@ -14,7 +14,8 @@
     "autoprefixer": "^10.0.0",
     "tailwind-merge": "^2.4.0",
     "tailwindcss-animate": "^1.0.7",
-    "firebase": "^9.6.1"
+    "firebase": "^9.6.1",
+    "xlsx": "^0.18.5"
   },
   "main": "/index.js",
   "devDependencies": {},
