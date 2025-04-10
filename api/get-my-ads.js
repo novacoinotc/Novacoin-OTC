@@ -1,3 +1,4 @@
+// pages/api/get-my-ads.js
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
 
   const body = {
     page: 1,
-    rows: 20, // Trae más resultados
+    rows: 20
   };
 
   try {
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
     });
 
     const data = await result.json();
+    console.log('📥 Respuesta de Binance:', JSON.stringify(data, null, 2)); // 👈 log
 
     if (!result.ok) {
       return res.status(result.status).json({ error: 'Error en la API de Binance', details: data });
