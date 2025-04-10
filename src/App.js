@@ -5,6 +5,7 @@ import GeneralBalanceView from './components/GeneralBalanceView';
 import ClientsDatabase from './components/ClientsDatabase';
 import TransactionsView from './components/TransactionsView';
 import BitsoPanel from './components/BitsoPanel';
+import BinanceBotPanel from './components/BinanceBotPanel';
 
 import { db } from './firebase/config';
 import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore';
@@ -40,7 +41,7 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // 🔼 Subir datos al servidor manualmente (cuando se actualizan)
+  // 🔼 Subir datos manualmente (si hay cambios locales)
   const updateClients = async (newClients) => {
     setClients(newClients);
     try {
@@ -65,7 +66,12 @@ const App = () => {
         {activeTab === 1 && <GeneralBalanceView clients={clients} />}
         {activeTab === 2 && <ClientsDatabase clients={clients} updateClients={updateClients} />}
         {activeTab === 3 && <TransactionsView clients={clients} />}
-        {activeTab === 4 && <BitsoPanel />}
+        {activeTab === 4 && (
+          <div className="space-y-10">
+            <BitsoPanel />
+            <BinanceBotPanel />
+          </div>
+        )}
       </div>
     </div>
   );
