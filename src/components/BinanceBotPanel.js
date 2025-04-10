@@ -10,28 +10,16 @@ const BinanceBotPanel = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/get-my-ads'); // Ruta actualizada si está en /pages/api
+      const res = await fetch('/api/get-my-ads');
       const data = await res.json();
 
-      if (Array.isArray(data)) {
-        setAds(data);
-      } else if (data.data && Array.isArray(data.data)) {
+      if (Array.isArray(data.data)) {
         setAds(data.data);
       } else {
-        console.warn('⚠️ Formato inesperado:', data);
-        setAds([]);
-        if (data.warning) {
-          setError(data.warning);
-        } else if (data.error) {
-          setError('Error desde la API de Binance');
-        } else {
-          setError('No se encontraron anuncios activos.');
-        }
+        setError('No se encontraron anuncios activos.');
       }
     } catch (err) {
-      console.error('❌ Error al cargar anuncios:', err);
       setError('Error de conexión al cargar los anuncios.');
-      setAds([]);
     } finally {
       setLoading(false);
     }
@@ -55,7 +43,7 @@ const BinanceBotPanel = () => {
   };
 
   useEffect(() => {
-    fetchAds(); // 🟢 Carga inicial
+    fetchAds();
 
     if (botActive) {
       const interval = setInterval(() => {

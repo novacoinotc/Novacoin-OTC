@@ -4,8 +4,7 @@ import TabNavigation from './components/TabNavigation';
 import GeneralBalanceView from './components/GeneralBalanceView';
 import ClientsDatabase from './components/ClientsDatabase';
 import TransactionsView from './components/TransactionsView';
-import BitsoPanel from './components/BitsoPanel';
-import BinanceBotPanel from './components/BinanceBotPanel';
+import BinanceBotPanel from './components/BinanceBotPanel'; // ✅ Solo Binance Bot
 
 import { db } from './firebase/config';
 import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore';
@@ -66,12 +65,7 @@ const App = () => {
         {activeTab === 1 && <GeneralBalanceView clients={clients} />}
         {activeTab === 2 && <ClientsDatabase clients={clients} updateClients={updateClients} />}
         {activeTab === 3 && <TransactionsView clients={clients} />}
-        {activeTab === 4 && (
-          <div className="space-y-10">
-            <BitsoPanel />
-            <BinanceBotPanel />
-          </div>
-        )}
+        {activeTab === 4 && <BinanceBotPanel />}
       </div>
     </div>
   );
