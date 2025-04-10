@@ -20,7 +20,11 @@ export default async function handler(req, res) {
   };
 
   try {
-    const response = await fetch(`https://p2p.binance.com/bapi/c2c/v2/private/c2c/adv/mine?${queryString}&signature=${signature}`, {
+    const url = `https://p2p.binance.com/bapi/c2c/v2/private/c2c/adv/mine?${queryString}&signature=${signature}`;
+    console.log('📤 Llamando a Binance con URL:', url);
+    console.log('📦 Cuerpo de la solicitud:', JSON.stringify(requestBody));
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'X-MBX-APIKEY': API_KEY,
