@@ -8,19 +8,25 @@ export default async function handler(req, res) {
   const query = `timestamp=${TIMESTAMP}`;
   const signature = crypto.createHmac('sha256', API_SECRET).update(query).digest('hex');
 
+  const body = {
+    page: 1,
+    rows: 20
+  };
+
   try {
-    const response = await fetch(`https://api.binance.com/sapi/v1/c2c/ads/list?${query}&signature=${signature}`, {
-      method: 'GET',
+    const response = await fetch(`https://p2p.binance.com/bapi/c2c/v2/private/c2c/adv/mine?${query}&signature=${signature}`, {
+      method: 'POST',
       headers: {
         'X-MBX-APIKEY': API_KEY,
         'Content-Type': 'application/json'
-      }
+      },
+      body: JSON.stringify(body)
     });
 
     const data = await response.json();
 
     if (response.ok) {
-      res.status(200).json(data);
+      res.status(200).json(data.data || []);
     } else {
       res.status(response.status).json({ error: data });
     }

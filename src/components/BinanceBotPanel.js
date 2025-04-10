@@ -3,12 +3,25 @@ import React, { useEffect, useState } from 'react';
 const BinanceBotPanel = () => {
   const [ads, setAds] = useState([]);
   const [botActive, setBotActive] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const fetchAds = async () => {
-    const res = await fetch('/api/Binance/get-my-ads'); // ✅ Ruta correcta basada en tu estructura
-    const data = await res.json();
-    if (data.data) {
-      setAds(data.data);
+    try {
+      const res = await fetch('/api/Binance/get-my-ads');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setAds(data);
+      } else if (data.data && Array.isArray(data.data)) {
+        setAds(data.data);
+      } else {
+        console.warn('Formato inesperado:', data);
+        setAds([]);
+      }
+    } catch (err) {
+      console.error('Error al cargar anuncios:', err);
+      setAds([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -30,11 +43,13 @@ const BinanceBotPanel = () => {
   };
 
   useEffect(() => {
+    fetchAds(); // 🟢 Carga inicial
+
     if (botActive) {
       const interval = setInterval(() => {
         fetchAds();
         simulateLowestPrice();
-      }, 10000); // cada 10 segundos
+      }, 10000);
       return () => clearInterval(interval);
     }
   }, [botActive]);
@@ -50,8 +65,11 @@ const BinanceBotPanel = () => {
           {botActive ? 'Detener Bot' : 'Activar Bot'}
         </button>
       </div>
-      {ads.length === 0 ? (
+
+      {loading ? (
         <p className="text-gray-500 text-sm">Cargando anuncios...</p>
+      ) : ads.length === 0 ? (
+        <p className="text-gray-500 text-sm">No se encontraron anuncios.</p>
       ) : (
         <table className="w-full text-sm mt-4">
           <thead>
