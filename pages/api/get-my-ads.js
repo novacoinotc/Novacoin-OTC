@@ -22,10 +22,14 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    if (response.ok) {
+
+    // 🔍 Log completo para depurar
+    console.log("🔍 Binance API response:", JSON.stringify(data, null, 2));
+
+    if (response.ok && data && data.data && Array.isArray(data.data)) {
       res.status(200).json(data);
     } else {
-      res.status(response.status).json({ error: data });
+      res.status(200).json({ data: [], warning: 'No se encontraron anuncios válidos.', raw: data });
     }
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener los anuncios', details: error.message });

@@ -4,21 +4,33 @@ const BinanceBotPanel = () => {
   const [ads, setAds] = useState([]);
   const [botActive, setBotActive] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchAds = async () => {
+    setLoading(true);
+    setError('');
     try {
-      const res = await fetch('/api/Binance/get-my-ads');
+      const res = await fetch('/api/get-my-ads'); // Ruta actualizada si está en /pages/api
       const data = await res.json();
+
       if (Array.isArray(data)) {
         setAds(data);
       } else if (data.data && Array.isArray(data.data)) {
         setAds(data.data);
       } else {
-        console.warn('Formato inesperado:', data);
+        console.warn('⚠️ Formato inesperado:', data);
         setAds([]);
+        if (data.warning) {
+          setError(data.warning);
+        } else if (data.error) {
+          setError('Error desde la API de Binance');
+        } else {
+          setError('No se encontraron anuncios activos.');
+        }
       }
     } catch (err) {
-      console.error('Error al cargar anuncios:', err);
+      console.error('❌ Error al cargar anuncios:', err);
+      setError('Error de conexión al cargar los anuncios.');
       setAds([]);
     } finally {
       setLoading(false);
@@ -26,7 +38,7 @@ const BinanceBotPanel = () => {
   };
 
   const updatePrice = async (adId, newPrice) => {
-    await fetch('/api/Binance/update-my-price', {
+    await fetch('/api/update-my-price', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -68,6 +80,8 @@ const BinanceBotPanel = () => {
 
       {loading ? (
         <p className="text-gray-500 text-sm">Cargando anuncios...</p>
+      ) : error ? (
+        <p className="text-red-500 text-sm">{error}</p>
       ) : ads.length === 0 ? (
         <p className="text-gray-500 text-sm">No se encontraron anuncios.</p>
       ) : (
@@ -80,7 +94,7 @@ const BinanceBotPanel = () => {
             </tr>
           </thead>
           <tbody>
-            {ads.map(ad => (
+            {ads.map((ad) => (
               <tr key={ad.advertisementId} className="border-b">
                 <td className="p-2">{ad.advertisementId}</td>
                 <td className="p-2">{ad.asset}</td>
