@@ -11,27 +11,26 @@ export default async function handler(req, res) {
 
   const timestamp = Date.now();
   const queryString = `timestamp=${timestamp}`;
-  const signature = crypto.createHmac('sha256', API_SECRET)
-    .update(queryString)
-    .digest('hex');
+  const signature = crypto.createHmac('sha256', API_SECRET).update(queryString).digest('hex');
 
   try {
-    const result = await fetch(`https://api.binance.com/sapi/v1/c2c/ads/list?${queryString}&signature=${signature}`, {
-      method: 'GET',
+    const result = await fetch(`https://p2p.binance.com/bapi/c2c/v2/private/c2c/adv/mine?${queryString}&signature=${signature}`, {
+      method: 'POST',
       headers: {
         'X-MBX-APIKEY': API_KEY,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ page: 1, rows: 10 }),
     });
 
     const data = await result.json();
 
     if (!result.ok) {
-      return res.status(result.status).json({ error: 'Error en la API de Binance', details: data });
+      return res.status(result.status).json({ error: 'Binance API error', details: data });
     }
 
     return res.status(200).json(data);
   } catch (error) {
-    return res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+    return res.status(500).json({ error: 'Error de servidor', details: error.message });
   }
 }
