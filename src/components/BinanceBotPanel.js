@@ -5,7 +5,7 @@ const BinanceBotPanel = () => {
   const [botActive, setBotActive] = useState(false);
 
   const fetchAds = async () => {
-    const res = await fetch('/api/get-my-ads');
+    const res = await fetch('/api/Binance/get-my-ads'); // ✅ Ruta correcta basada en tu estructura
     const data = await res.json();
     if (data.data) {
       setAds(data.data);
@@ -13,7 +13,7 @@ const BinanceBotPanel = () => {
   };
 
   const updatePrice = async (adId, newPrice) => {
-    await fetch('/api/update-my-price', {
+    await fetch('/api/Binance/update-my-price', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
