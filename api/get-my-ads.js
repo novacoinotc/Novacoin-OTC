@@ -1,3 +1,4 @@
+// pages/api/get-my-ads.js
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
@@ -37,13 +38,13 @@ export default async function handler(req, res) {
     const data = await proxyResponse.json();
 
     if (!proxyResponse.ok) {
-      console.error('❌ Respuesta de Binance (a través del proxy):', data);
+      console.error('❌ Respuesta de Binance (proxy):', data);
       return res.status(proxyResponse.status).json({ error: 'Error desde Binance', details: data });
     }
 
     return res.status(200).json(data);
   } catch (error) {
-    console.error('❌ Error al conectar con el proxy:', error);
-    return res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+    console.error('❌ Error al conectar con proxy:', error);
+    return res.status(500).json({ error: 'Error interno', details: error.message });
   }
 }

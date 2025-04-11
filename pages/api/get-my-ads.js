@@ -1,3 +1,4 @@
+// pages/api/get-my-ads.js
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
@@ -11,31 +12,39 @@ export default async function handler(req, res) {
   const timestamp = Date.now();
   const recvWindow = 5000;
   const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
+
   const signature = crypto
     .createHmac('sha256', API_SECRET)
     .update(queryString)
     .digest('hex');
 
-  const finalPath = `/sapi/v1/c2c/ads/mine?${queryString}&signature=${signature}`;
+  const binanceUrl = `https://api.binance.com/sapi/v1/c2c/ads/mine?${queryString}&signature=${signature}`;
 
   try {
-    const proxyResponse = await fetch(`https://binance-p2p-proxy.onrender.com${finalPath}`, {
-      method: 'GET',
+    const proxyResponse = await fetch('https://binance-p2p-proxy.onrender.com/proxy', {
+      method: 'POST',
       headers: {
-        'X-MBX-APIKEY': API_KEY,
+        'Content-Type': 'application/json'
       },
+      body: JSON.stringify({
+        url: binanceUrl,
+        method: 'GET',
+        headers: {
+          'X-MBX-APIKEY': API_KEY
+        }
+      })
     });
 
     const data = await proxyResponse.json();
 
     if (!proxyResponse.ok) {
-      console.error('❌ Respuesta de Binance (a través del proxy):', data);
+      console.error('❌ Respuesta de Binance (proxy):', data);
       return res.status(proxyResponse.status).json({ error: 'Error desde Binance', details: data });
     }
 
     return res.status(200).json(data);
   } catch (error) {
-    console.error('❌ Error al conectar con el proxy:', error);
-    return res.status(500).json({ error: 'Error interno del servidor', details: error.message });
+    console.error('❌ Error al conectar con proxy:', error);
+    return res.status(500).json({ error: 'Error interno', details: error.message });
   }
 }

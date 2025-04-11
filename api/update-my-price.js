@@ -1,3 +1,4 @@
+// pages/api/update-my-price.js
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
@@ -21,39 +22,44 @@ export default async function handler(req, res) {
   const timestamp = Date.now();
   const recvWindow = 5000;
 
-  const body = JSON.stringify({
-    advNo: adId,
-    price: price.toString()
-  });
-
   const queryString = `timestamp=${timestamp}&recvWindow=${recvWindow}`;
   const signature = crypto
     .createHmac('sha256', API_SECRET)
     .update(queryString)
     .digest('hex');
 
-  const url = `https://api.binance.com/sapi/v1/c2c/ads/updatePrice?${queryString}&signature=${signature}`;
+  const binanceUrl = `https://api.binance.com/sapi/v1/c2c/ads/updatePrice?${queryString}&signature=${signature}`;
 
   try {
-    const response = await fetch(url, {
+    const proxyResponse = await fetch('https://binance-p2p-proxy.onrender.com/proxy', {
       method: 'POST',
       headers: {
-        'X-MBX-APIKEY': API_KEY,
         'Content-Type': 'application/json'
       },
-      body
+      body: JSON.stringify({
+        url: binanceUrl,
+        method: 'POST',
+        headers: {
+          'X-MBX-APIKEY': API_KEY,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          advNo: adId,
+          price: price.toString()
+        }
+      })
     });
 
-    const result = await response.json();
+    const result = await proxyResponse.json();
 
-    if (!response.ok) {
-      console.error('❌ Error al actualizar precio:', result);
-      return res.status(response.status).json({ error: 'Error desde Binance', details: result });
+    if (!proxyResponse.ok) {
+      console.error('❌ Error al actualizar precio (proxy):', result);
+      return res.status(proxyResponse.status).json({ error: 'Error desde Binance', details: result });
     }
 
     return res.status(200).json({ success: true, result });
   } catch (error) {
-    console.error('❌ Error interno al conectar con Binance:', error);
+    console.error('❌ Error interno (proxy):', error);
     return res.status(500).json({ error: 'Error interno del servidor', details: error.message });
   }
 }
