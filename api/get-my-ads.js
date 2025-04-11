@@ -12,7 +12,6 @@ export default async function handler(req, res) {
   const timestamp = Date.now();
   const recvWindow = 5000;
   const queryString = `recvWindow=${recvWindow}&timestamp=${timestamp}`;
-
   const signature = crypto
     .createHmac('sha256', API_SECRET)
     .update(queryString)
@@ -21,7 +20,7 @@ export default async function handler(req, res) {
   const binanceUrl = `https://api.binance.com/sapi/v1/c2c/ads/mine?${queryString}&signature=${signature}`;
 
   try {
-    const proxyResponse = await fetch('https://binance-p2p-proxy.onrender.com/proxy', {
+    const proxyResponse = await fetch('https://binance-p2p-proxy.fly.dev/proxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
