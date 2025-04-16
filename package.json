@@ -16,7 +16,7 @@
     "tailwindcss-animate": "^1.0.7",
     "firebase": "^9.6.1",
     "xlsx": "^0.18.5",
-    "react-icons": "^4.10.1"  // ✅ Añadido para evitar error de módulo faltante
+    "react-icons": "^4.10.1"
   },
   "main": "/index.js",
   "devDependencies": {},
