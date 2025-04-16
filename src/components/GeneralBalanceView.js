@@ -1,28 +1,29 @@
+import React from 'react';
+
 const ClientBalanceCard = ({ client }) => {
   return (
-    <div className={
+    <div className={`
       bg-white rounded-xl shadow-md p-4 transition-all 
       hover:shadow-lg hover:scale-[1.02]
       ${client.balance >= 0 ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500'}
-    }>
+    `}>
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold text-gray-800">{client.name}</h3>
-          <p className={
+          <p className={`
             text-2xl font-bold mt-2
             ${client.balance >= 0 ? 'text-green-600' : 'text-red-600'}
-          }>
+          `}>
             ${client.balance.toLocaleString()}
           </p>
         </div>
         <div className="text-right">
-          <span className={
+          <span className={`
             px-3 py-1 rounded-full text-xs font-medium
             ${client.balance >= 0 
               ? 'bg-green-100 text-green-800' 
-              : 'bg-red-100 text-red-800'
-            }
-          }>
+              : 'bg-red-100 text-red-800'}
+          `}>
             {client.balance >= 0 ? 'Positivo' : 'Negativo'}
           </span>
         </div>
@@ -51,7 +52,7 @@ const GeneralBalanceView = ({ clients }) => {
         {/* Saldo Disponible */}
         <div className="bg-white shadow-lg rounded-xl p-6 text-center">
           <h3 className="text-xl font-semibold text-gray-700">Saldo Disponible</h3>
-          <p className={text-3xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}}>
+          <p className={`text-3xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             ${totalBalance.toLocaleString()}
           </p>
         </div>
@@ -76,12 +77,12 @@ const GeneralBalanceView = ({ clients }) => {
       <div className="bg-white shadow-lg rounded-xl p-6">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">Saldo por Cliente</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-  {clients.map(client => (
-    <div className="min-w-0">
-      <ClientBalanceCard key={client.id} client={client} />
-    </div>
-  ))}
-</div>
+          {clients.map(client => (
+            <div key={client.id} className="min-w-0">
+              <ClientBalanceCard client={client} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -91,3 +92,4 @@ export default GeneralBalanceView;
 
 // NUEVO COMENTARIO - AUTPW
 // NUEVO COMENTARIO - AUTPW21
+// NUEVO COMENTARIO - AUTPW123
