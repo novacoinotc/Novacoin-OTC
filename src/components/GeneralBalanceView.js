@@ -92,3 +92,5 @@ const GeneralBalanceView = ({ clients }) => {
 };
 
 export default GeneralBalanceView;
+
+// NUEVO COMENTARIO - AUTPW
