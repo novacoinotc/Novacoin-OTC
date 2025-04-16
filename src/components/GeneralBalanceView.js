@@ -94,3 +94,5 @@ const GeneralBalanceView = ({ clients }) => {
 export default GeneralBalanceView;
 
 // NUEVO COMENTARIO - AUTPW
+// NUEVO COMENTARIO - AUTPW21
+// NUEVO COMENTARIO - AUTPW123
