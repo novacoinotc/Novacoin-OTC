@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import ClientTransactionModal from './ClientTransactionModal';
 import ClientHistoryModal from './ClientHistoryModal';
@@ -21,7 +22,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
         transactions: [],
         createdAt: new Date().toISOString()
       };
-      updateClients([...clients, clientToAdd]);
+      updateClients([clientToAdd, ...clients]); // Añadir al principio
       setNewClient({ name: '', balance: 0 });
     }
   };
@@ -88,14 +89,16 @@ const ClientsDatabase = ({ clients, updateClients }) => {
   };
 
   const handleDeleteClient = (clientId) => {
+    const confirmDelete = window.confirm("¿Estás seguro de eliminar este elemento?");
+    if (!confirmDelete) return;
     const updatedClients = clients.filter(client => client.id !== clientId);
     updateClients(updatedClients);
     deleteClientFromFirebase(clientId);
   };
 
   return (
-    <div className="mt-4">
-      <div className="flex space-x-4 mb-4">
+    <div className="mt-4 px-2">
+      <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0 mb-4">
         <input
           type="text"
           placeholder="Nombre del Cliente"
@@ -119,46 +122,44 @@ const ClientsDatabase = ({ clients, updateClients }) => {
       </div>
 
       {clients.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">
-          No hay clientes registrados
-        </div>
+        <div className="text-center py-10 text-gray-500">No hay clientes registrados</div>
       ) : (
-        <div className="bg-white shadow-lg rounded-xl p-4">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="p-2 text-left">Nombre</th>
-                <th className="p-2 text-left">Saldo</th>
-                <th className="p-2 text-left">Fecha de Registro</th>
-                <th className="p-2 text-left">Acciones</th>
+        <div className="overflow-x-auto rounded-xl shadow-lg">
+          <table className="min-w-full text-sm text-left text-gray-700 bg-white">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-3">Nombre</th>
+                <th className="p-3">Saldo</th>
+                <th className="p-3">Fecha de Registro</th>
+                <th className="p-3">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {clients.map(client => (
-                <tr key={client.id} className="border-b">
-                  <td className="p-2">{client.name}</td>
-                  <td className={`p-2 ${client.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <tr key={client.id} className="border-t hover:bg-gray-50 transition">
+                  <td className="p-3 font-medium">{client.name}</td>
+                  <td className={`p-3 ${client.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     ${client.balance.toLocaleString()}
                   </td>
-                  <td className="p-2 text-gray-600">
+                  <td className="p-3 text-gray-500">
                     {new Date(client.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="p-2 flex space-x-2">
+                  <td className="p-3 flex flex-wrap gap-2">
                     <button
                       onClick={() => setSelectedClient(client)}
-                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                      className="text-blue-600 hover:text-blue-800"
                     >
                       Movimientos
                     </button>
                     <button
                       onClick={() => setHistoryClient(client)}
-                      className="text-green-600 hover:text-green-800 transition-colors"
+                      className="text-green-600 hover:text-green-800"
                     >
                       Historial
                     </button>
                     <button
                       onClick={() => handleDeleteClient(client.id)}
-                      className="text-red-600 hover:text-red-800 transition-colors"
+                      className="text-red-600 hover:text-red-800"
                     >
                       Eliminar
                     </button>
