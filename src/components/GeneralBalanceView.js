@@ -48,7 +48,7 @@ const GeneralBalanceView = ({ clients }) => {
   const clientsWithNegativeBalance = clients.filter(client => client.balance < 0);
 
   // Calcula el fondo total sumando los saldos positivos y negativos
-  const totalFund = clients.reduce((acc, client) => acc + client.balance, 0);
+  const totalFund = clients.reduce((acc, client) => acc + client.balance, 0);  // AUTPW
 
   return (
     <div>
@@ -65,7 +65,8 @@ const GeneralBalanceView = ({ clients }) => {
         <div className="bg-white shadow-lg rounded-xl p-6 text-center">
           <h3 className="text-xl font-semibold text-gray-700">Fondo Total</h3>
           <p className="text-3xl font-bold text-yellow-500">
-            ${Math.abs(totalFund).toLocaleString()}
+            {/* Sumar el saldo disponible y los préstamos negativos para mostrar el fondo total */}
+            ${Math.abs(totalBalance + totalFund).toLocaleString()} {/* AUTPW */}
           </p>
         </div>
 
