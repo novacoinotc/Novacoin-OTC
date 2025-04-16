@@ -1,84 +1,91 @@
-
 import React, { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 
-const ClientTransactionModal = ({ client, onClose, onSave }) => {
-  const [name, setName] = useState(client?.name || '');
-  const [amount, setAmount] = useState('');
-  const [transactions, setTransactions] = useState(client?.transactions || []);
+const ClientTransactionModal = ({ client, onClose, onTransaction }) => {
+  const [transaction, setTransaction] = useState({
+    type: 'deposit',
+    amount: '',
+    concept: ''
+  });
 
-  const handleSave = () => {
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount)) return;
+  const handleTransactionSubmit = () => {
+    if (transaction.amount && Number(transaction.amount) > 0) {
+      const finalTransaction = {
+        ...transaction,
+        amount: transaction.type === 'deposit'
+          ? Math.abs(Number(transaction.amount))
+          : -Math.abs(Number(transaction.amount)),
+        timestamp: new Date().toISOString(),
+        id: crypto.randomUUID() // ✅ ID único para Firebase
+      };
 
-    const newTransaction = {
-      id: uuidv4(),
-      amount: parsedAmount,
-      type: parsedAmount >= 0 ? 'Ingreso' : 'Egreso',
-      createdAt: new Date().toISOString()
-    };
-
-    const updatedTransactions = [...transactions, newTransaction];
-    const newBalance = updatedTransactions.reduce((acc, tx) => acc + tx.amount, 0);
-
-    onSave({
-      id: client?.id || uuidv4(),
-      name,
-      transactions: updatedTransactions,
-      balance: newBalance,
-      createdAt: client?.createdAt || new Date().toISOString()
-    });
-
-    setTransactions(updatedTransactions);
-    setAmount('');
+      onTransaction(client.id, finalTransaction);
+      onClose();
+    }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-xl font-semibold mb-4">{client ? 'Editar Cliente' : 'Nuevo Cliente'}</h3>
-        <input
-          type="text"
-          className="w-full border px-3 py-2 mb-3 rounded"
-          placeholder="Nombre del Cliente"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          type="number"
-          className="w-full border px-3 py-2 mb-3 rounded"
-          placeholder="Monto"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-        />
-        <div className="flex justify-end space-x-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded bg-gray-300 text-gray-800"
-          >
-            Cerrar
-          </button>
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 rounded bg-green-600 text-white"
-          >
-            Guardar
-          </button>
+      <div className="bg-white rounded-2xl shadow-2xl w-96 p-6 relative">
+        <button 
+          onClick={onClose} 
+          className="absolute top-4 right-4 text-gray-500 hover:text-black transition-colors"
+        >
+          ✕
+        </button>
+        <h2 className="text-2xl font-bold mb-6 text-center">
+          Nuevo Movimiento para {client.name}
+        </h2>
+
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-2">Tipo de Transacción</label>
+          <div className="flex space-x-2">
+            {['deposit', 'withdraw'].map(type => (
+              <button
+                key={type}
+                onClick={() => setTransaction({ ...transaction, type })}
+                className={`
+                  px-4 py-2 rounded-full transition-all 
+                  ${transaction.type === type
+                    ? 'bg-black text-white'
+                    : 'text-gray-600 hover:bg-gray-200'
+                  }
+                `}
+              >
+                {type === 'deposit' ? 'Depósito' : 'Retiro'}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-4">
-          <h4 className="font-bold mb-2">Historial de Movimientos</h4>
-          <ul className="max-h-40 overflow-y-auto space-y-1 text-sm">
-            {transactions.map(tx => (
-              <li key={tx.id} className="flex justify-between">
-                <span>{tx.type}</span>
-                <span className={tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}>
-                  ${tx.amount.toLocaleString()}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-2">Monto</label>
+          <input
+            type="number"
+            placeholder="Ingrese el monto"
+            value={transaction.amount}
+            onChange={(e) => setTransaction({ ...transaction, amount: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+          />
         </div>
+
+        <div className="mb-4">
+          <label className="block text-gray-700 mb-2">Concepto (Opcional)</label>
+          <input
+            type="text"
+            placeholder="Descripción del movimiento"
+            value={transaction.concept}
+            onChange={(e) => setTransaction({ ...transaction, concept: e.target.value })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+          />
+        </div>
+
+        <button
+          onClick={handleTransactionSubmit}
+          className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 transition-colors"
+          disabled={!transaction.amount}
+        >
+          Registrar Movimiento
+        </button>
       </div>
     </div>
   );
