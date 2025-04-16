@@ -38,7 +38,13 @@ const ClientBalanceCard = ({ client }) => {
 };
 
 const GeneralBalanceView = ({ clients }) => {
-  const totalBalance = clients.reduce((acc, client) => acc + client.balance, 0);
+  // Filtra solo los clientes con saldo positivo
+  const clientsWithPositiveBalance = clients.filter(client => client.balance >= 0);
+
+  // Calcula el saldo total sumando solo los saldos positivos
+  const totalBalance = clientsWithPositiveBalance.reduce((acc, client) => acc + client.balance, 0);
+
+  // Filtra los clientes con saldo negativo (para mostrarlos en las tarjetas)
   const clientsWithNegativeBalance = clients.filter(client => client.balance < 0);
 
   return (
@@ -77,5 +83,3 @@ const GeneralBalanceView = ({ clients }) => {
 };
 
 export default GeneralBalanceView;
-
-// DONE
