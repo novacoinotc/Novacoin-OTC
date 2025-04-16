@@ -38,17 +38,14 @@ const ClientBalanceCard = ({ client }) => {
 };
 
 const GeneralBalanceView = ({ clients }) => {
-  // Filtra solo los clientes con saldo positivo
   const clientsWithPositiveBalance = clients.filter(client => client.balance >= 0);
-
-  // Calcula el saldo disponible sumando solo los saldos positivos
   const totalBalance = clientsWithPositiveBalance.reduce((acc, client) => acc + client.balance, 0);
 
-  // Filtra los clientes con saldo negativo (para mostrarlos en las tarjetas)
   const clientsWithNegativeBalance = clients.filter(client => client.balance < 0);
+  const totalPrestamos = clientsWithNegativeBalance.reduce((acc, client) => acc + client.balance, 0);
+  const totalPrestamosAbsoluto = Math.abs(totalPrestamos); // AUTPW21
 
-  // Calcula el fondo total sumando los saldos positivos y negativos
-  const totalFund = clients.reduce((acc, client) => acc + client.balance, 0);  // AUTPW
+  const totalFund = totalBalance + totalPrestamosAbsoluto; // AUTPW123
 
   return (
     <div>
@@ -65,8 +62,7 @@ const GeneralBalanceView = ({ clients }) => {
         <div className="bg-white shadow-lg rounded-xl p-6 text-center">
           <h3 className="text-xl font-semibold text-gray-700">Fondo Total</h3>
           <p className="text-3xl font-bold text-yellow-500">
-            {/* Sumar el saldo disponible y los préstamos negativos para mostrar el fondo total */}
-            ${Math.abs(totalBalance + totalFund).toLocaleString()} {/* AUTPW */}
+            ${totalFund.toLocaleString()} {/* AUTPW */}
           </p>
         </div>
 
@@ -74,7 +70,7 @@ const GeneralBalanceView = ({ clients }) => {
         <div className="bg-white shadow-lg rounded-xl p-6 text-center">
           <h3 className="text-xl font-semibold text-gray-700">Total Préstamos</h3>
           <p className="text-3xl font-bold text-red-600">
-            ${Math.abs(clientsWithNegativeBalance.reduce((acc, client) => acc + client.balance, 0)).toLocaleString()}
+            ${totalPrestamosAbsoluto.toLocaleString()}
           </p>
         </div>
       </div>
