@@ -49,7 +49,7 @@ const GeneralBalanceView = ({ clients }) => {
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Saldo Disponible */}
         <div className="bg-white shadow-lg rounded-xl p-6 text-center">
           <h3 className="text-xl font-semibold text-gray-700">Saldo Disponible</h3>
