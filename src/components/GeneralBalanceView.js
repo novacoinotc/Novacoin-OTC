@@ -41,27 +41,35 @@ const GeneralBalanceView = ({ clients }) => {
   // Filtra solo los clientes con saldo positivo
   const clientsWithPositiveBalance = clients.filter(client => client.balance >= 0);
 
-  // Calcula el saldo total sumando solo los saldos positivos
+  // Calcula el saldo disponible sumando solo los saldos positivos
   const totalBalance = clientsWithPositiveBalance.reduce((acc, client) => acc + client.balance, 0);
 
   // Filtra los clientes con saldo negativo (para mostrarlos en las tarjetas)
   const clientsWithNegativeBalance = clients.filter(client => client.balance < 0);
 
+  // Calcula el fondo total sumando los saldos positivos y negativos
+  const totalFund = clients.reduce((acc, client) => acc + client.balance, 0);
+
   return (
     <div>
       <div className="grid grid-cols-3 gap-4 mb-6">
+        {/* Saldo Disponible */}
         <div className="bg-white shadow-lg rounded-xl p-6 text-center">
-          <h3 className="text-xl font-semibold text-gray-700">Saldo Total</h3>
+          <h3 className="text-xl font-semibold text-gray-700">Saldo Disponible</h3>
           <p className={`text-3xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             ${totalBalance.toLocaleString()}
           </p>
         </div>
+
+        {/* Fondo Total */}
         <div className="bg-white shadow-lg rounded-xl p-6 text-center">
-          <h3 className="text-xl font-semibold text-gray-700">Clientes con Préstamos</h3>
-          <p className="text-3xl font-bold text-blue-600">
-            {clientsWithNegativeBalance.length}
+          <h3 className="text-xl font-semibold text-gray-700">Fondo Total</h3>
+          <p className="text-3xl font-bold text-yellow-500">
+            ${Math.abs(totalFund).toLocaleString()}
           </p>
         </div>
+
+        {/* Total Préstamos */}
         <div className="bg-white shadow-lg rounded-xl p-6 text-center">
           <h3 className="text-xl font-semibold text-gray-700">Total Préstamos</h3>
           <p className="text-3xl font-bold text-red-600">
