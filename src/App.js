@@ -4,7 +4,7 @@ import TabNavigation from './components/TabNavigation';
 import GeneralBalanceView from './components/GeneralBalanceView';
 import ClientsDatabase from './components/ClientsDatabase';
 import TransactionsView from './components/TransactionsView';
-import BinanceBotPanel from './components/BinanceBotPanel'; // ✅ Solo Binance Bot
+import BinanceBotPanel from './components/BinanceBotPanel';
 
 import { db } from './firebase/config';
 import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore';
@@ -34,7 +34,14 @@ const App = () => {
         })
       );
 
-      setClients(updatedClients);
+      // ✅ Ordenar por fecha de última modificación o creación
+      const sortedByLastUpdate = updatedClients.sort((a, b) => {
+        const aTime = new Date(a.lastUpdated || a.createdAt).getTime();
+        const bTime = new Date(b.lastUpdated || b.createdAt).getTime();
+        return bTime - aTime;
+      });
+
+      setClients(sortedByLastUpdate);
     });
 
     return () => unsubscribe();
