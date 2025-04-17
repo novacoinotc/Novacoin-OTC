@@ -83,7 +83,7 @@ export const loadClientsFromFirebase = async () => {
 };
 
 /**
- * 🗑 Eliminar un cliente completo (y sus subcolecciones si aplica).
+ * 🗑 Eliminar un cliente completo.
  */
 export const deleteClientFromFirebase = async (clientId) => {
   try {
@@ -95,7 +95,7 @@ export const deleteClientFromFirebase = async (clientId) => {
 };
 
 /**
- * 🗑 Eliminar una transacción específica de un cliente.
+ * 🗑 Eliminar una transacción específica.
  */
 export const deleteTransactionFromFirebase = async (clientId, transactionId) => {
   try {
@@ -107,12 +107,18 @@ export const deleteTransactionFromFirebase = async (clientId, transactionId) => 
 };
 
 /**
- * 🔁 Actualizar una transacción existente.
+ * 🔁 Actualizar una transacción existente y actualizar lastUpdated del cliente.
  */
 export const updateTransactionInFirebase = async (clientId, transaction) => {
   try {
-    const ref = doc(db, 'clients', clientId, 'transactions', transaction.id);
-    await updateDoc(ref, transaction);
+    const txRef = doc(db, 'clients', clientId, 'transactions', transaction.id);
+    const clientRef = doc(db, 'clients', clientId);
+
+    await updateDoc(txRef, transaction);
+    await updateDoc(clientRef, {
+      lastUpdated: new Date().toISOString() // ✅ Aseguramos que se actualice el cliente
+    });
+
     console.log(`🔁 Transacción ${transaction.id} actualizada`);
   } catch (error) {
     console.error('❌ Error al actualizar transacción:', error);
