@@ -49,9 +49,16 @@ const App = () => {
 
   // 🔼 Subir datos manualmente (si hay cambios locales)
   const updateClients = async (newClients) => {
-    setClients(newClients);
+    // ✅ Ordenarlos localmente antes de sincronizar
+    const sortedClients = [...newClients].sort((a, b) => {
+      const aTime = new Date(a.lastUpdated || a.createdAt).getTime();
+      const bTime = new Date(b.lastUpdated || b.createdAt).getTime();
+      return bTime - aTime;
+    });
+
+    setClients(sortedClients);
     try {
-      await uploadClientsToFirebase(newClients);
+      await uploadClientsToFirebase(sortedClients);
       const now = new Date().toLocaleTimeString();
       setSyncMessage(`✅ Sincronizado: ${now}`);
     } catch {
