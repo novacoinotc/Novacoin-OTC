@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import ClientTransactionModal from './ClientTransactionModal';
 import ClientHistoryModal from './ClientHistoryModal';
@@ -22,7 +21,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
         transactions: [],
         createdAt: new Date().toISOString()
       };
-      updateClients([clientToAdd, ...clients]); // Añadir al principio
+      updateClients([clientToAdd, ...clients]);
       setNewClient({ name: '', balance: 0 });
     }
   };
@@ -43,7 +42,12 @@ const ClientsDatabase = ({ clients, updateClients }) => {
       }
       return client;
     });
-    updateClients(updatedClients);
+
+    // Mueve el cliente actualizado al inicio
+    const reordered = updatedClients.sort((a, b) =>
+      a.id === clientId ? -1 : b.id === clientId ? 1 : 0
+    );
+    updateClients(reordered);
   };
 
   const handleUpdateTransaction = (clientId, updatedTransaction) => {
@@ -68,7 +72,10 @@ const ClientsDatabase = ({ clients, updateClients }) => {
       return client;
     });
 
-    updateClients(updatedClients);
+    const reordered = updatedClients.sort((a, b) =>
+      a.id === clientId ? -1 : b.id === clientId ? 1 : 0
+    );
+    updateClients(reordered);
   };
 
   const handleDeleteTransaction = (clientId, transactionToDelete) => {
