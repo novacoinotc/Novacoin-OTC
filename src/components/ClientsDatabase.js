@@ -19,7 +19,8 @@ const ClientsDatabase = ({ clients, updateClients }) => {
         ...newClient,
         id: crypto.randomUUID(),
         transactions: [],
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString() // AUTPW
       };
       updateClients([clientToAdd, ...clients]);
       setNewClient({ name: '', balance: 0 });
@@ -37,17 +38,14 @@ const ClientsDatabase = ({ clients, updateClients }) => {
         return {
           ...client,
           balance: client.balance + newTransaction.amount,
-          transactions: [...client.transactions, newTransaction]
+          transactions: [...client.transactions, newTransaction],
+          lastUpdated: new Date().toISOString() // AUTPW
         };
       }
       return client;
     });
 
-    // Mueve el cliente actualizado al inicio
-    const reordered = updatedClients.sort((a, b) =>
-      a.id === clientId ? -1 : b.id === clientId ? 1 : 0
-    );
-    updateClients(reordered);
+    updateClients(updatedClients);
   };
 
   const handleUpdateTransaction = (clientId, updatedTransaction) => {
@@ -63,7 +61,8 @@ const ClientsDatabase = ({ clients, updateClients }) => {
         const updatedClient = {
           ...client,
           balance: client.balance + balanceDiff,
-          transactions: newTransactions
+          transactions: newTransactions,
+          lastUpdated: new Date().toISOString() // AUTPW
         };
 
         updateTransactionInFirebase(clientId, updatedTransaction);
@@ -72,10 +71,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
       return client;
     });
 
-    const reordered = updatedClients.sort((a, b) =>
-      a.id === clientId ? -1 : b.id === clientId ? 1 : 0
-    );
-    updateClients(reordered);
+    updateClients(updatedClients);
   };
 
   const handleDeleteTransaction = (clientId, transactionToDelete) => {
@@ -85,7 +81,8 @@ const ClientsDatabase = ({ clients, updateClients }) => {
         return {
           ...client,
           balance: client.balance - transactionToDelete.amount,
-          transactions: newTransactions
+          transactions: newTransactions,
+          lastUpdated: new Date().toISOString() // AUTPW
         };
       }
       return client;
@@ -102,6 +99,13 @@ const ClientsDatabase = ({ clients, updateClients }) => {
     updateClients(updatedClients);
     deleteClientFromFirebase(clientId);
   };
+
+  // Ordenar por fecha de última actualización o creación
+  const sortedClients = [...clients].sort((a, b) => {
+    const aTime = new Date(a.lastUpdated || a.createdAt).getTime();
+    const bTime = new Date(b.lastUpdated || b.createdAt).getTime();
+    return bTime - aTime;
+  });
 
   return (
     <div className="mt-4 px-2">
@@ -128,7 +132,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
         </button>
       </div>
 
-      {clients.length === 0 ? (
+      {sortedClients.length === 0 ? (
         <div className="text-center py-10 text-gray-500">No hay clientes registrados</div>
       ) : (
         <div className="overflow-x-auto rounded-xl shadow-lg">
@@ -142,7 +146,7 @@ const ClientsDatabase = ({ clients, updateClients }) => {
               </tr>
             </thead>
             <tbody>
-              {clients.map(client => (
+              {sortedClients.map(client => (
                 <tr key={client.id} className="border-t hover:bg-gray-50 transition">
                   <td className="p-3 font-medium">{client.name}</td>
                   <td className={`p-3 ${client.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
