@@ -23,7 +23,8 @@ export const uploadClientsToFirebase = async (clientsData) => {
       const clientDocData = {
         name: client.name,
         balance: client.balance,
-        createdAt: client.createdAt || new Date().toISOString()
+        createdAt: client.createdAt || new Date().toISOString(),
+        lastUpdated: new Date().toISOString() // ✅ Agregamos campo de actualización
       };
       batch.set(clientRef, clientDocData);
 
@@ -55,7 +56,6 @@ export const uploadClientsToFirebase = async (clientsData) => {
 
 /**
  * 🔽 Obtener clientes y transacciones desde Firebase.
- * Ya no se necesita en `App.js` si usas `onSnapshot`, pero se puede dejar como utilidad.
  */
 export const loadClientsFromFirebase = async () => {
   try {
