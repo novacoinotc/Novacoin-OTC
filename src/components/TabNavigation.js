@@ -1,3 +1,4 @@
+// src/components/TabNavigation.js
 import React from 'react';
 
 const TabNavigation = ({ activeTab, setActiveTab }) => {
@@ -5,9 +6,8 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
     { id: 1, name: 'Saldo General' },
     { id: 2, name: 'Base de Clientes' },
     { id: 3, name: 'Movimientos' },
-    { id: 4, name: 'BOT BINANCE' } // ✅ Solo Binance Bot
     { id: 4, name: 'BOT BINANCE' },
-    { id: 5, name: 'Operación' } // ← nueva pestaña
+    { id: 5, name: 'Operación' }  // ← nueva pestaña
   ];
 
   return (
