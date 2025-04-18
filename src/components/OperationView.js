@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 
+// Nota: html2canvas ya viene global tras incluir el <script> en index.html
+// se accede con window.html2canvas
 const OPERATORS = [
   { name: 'Gael',      color: '#FACC15', purchaseOffset: 0.02, saleOffset: 0.05, usePurchaseForFinal: true },
   { name: 'Christian', color: '#F97316', purchaseOffset: 0.02, saleOffset: 0.05, usePurchaseForFinal: true },
@@ -18,30 +20,34 @@ export default function OperationView() {
 
   // Cargar últimos valores de localStorage
   const [deposited, setDeposited] = useState(() => localStorage.getItem('op_deposit') || '')
-  const [spot, setSpot]         = useState(() => localStorage.getItem('op_spot')     || '')
+  const [spot, setSpot]         = useState(() => localStorage.getItem('op_spot') || '')
   const [operator, setOperator] = useState(() => localStorage.getItem('op_operator') || 'Issac')
 
+  // Guardar en localStorage cuando cambian
   useEffect(() => { localStorage.setItem('op_deposit', deposited) }, [deposited])
   useEffect(() => { localStorage.setItem('op_spot',     spot)     }, [spot])
   useEffect(() => { localStorage.setItem('op_operator', operator) }, [operator])
 
-  const op     = OPERATORS.find(o => o.name === operator)
-  const depNum = parseFloat(deposited) || 0
-  const spotNum= parseFloat(spot)      || 0
+  const op = OPERATORS.find(o => o.name === operator) || OPERATORS[0]
+
+  // parseFloat seguro
+  const depNum  = parseFloat(deposited) || 0
+  const spotNum = parseFloat(spot)      || 0
 
   // precios
   const buyPrice  = spotNum + op.purchaseOffset
   const sellPrice = spotNum + op.saleOffset
 
-  // cálculos
-  const rawAmount   = depNum / buyPrice
+  // cantidad USDT antes de fee
+  const rawAmount = depNum / buyPrice
+  // para los que usan spot en la final
   const finalAmount = op.usePurchaseForFinal
     ? rawAmount - NETWORK_COST
-    : depNum / spotNum - NETWORK_COST
+    : (spotNum > 0 ? depNum / spotNum : 0) - NETWORK_COST
 
-  // usar la versión global de html2canvas
+  // captura y copia como imagen
   const copyAsImage = async () => {
-    if (!containerRef.current) return
+    if (!containerRef.current || !window.html2canvas) return
     const canvas = await window.html2canvas(containerRef.current)
     canvas.toBlob(blob => {
       if (!blob) return
@@ -51,7 +57,7 @@ export default function OperationView() {
   }
 
   return (
-    <div 
+    <div
       ref={containerRef}
       className="max-w-md mx-auto p-4 border rounded-lg shadow-lg space-y-4"
       style={{ borderColor: op.color }}
@@ -60,6 +66,7 @@ export default function OperationView() {
         NovaCoin · Operación
       </h2>
 
+      {/* selector de operador */}
       <div>
         <label className="block text-sm font-semibold mb-1">Operador</label>
         <select
@@ -73,6 +80,7 @@ export default function OperationView() {
         </select>
       </div>
 
+      {/* depósito y spot */}
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label className="block text-sm">CCY Depositado (MXN)</label>
@@ -94,18 +102,33 @@ export default function OperationView() {
         </div>
       </div>
 
+      {/* tabla de cotización */}
       <div className="bg-gray-100 p-2 rounded space-y-1">
-        <div className="flex justify-between"><span>TC Spot</span><span>${spotNum.toFixed(3)}</span></div>
-        <div className="flex justify-between"><span>Precio compra</span><span>${buyPrice.toFixed(3)}</span></div>
-        <div className="flex justify-between"><span>Precio venta</span><span>${sellPrice.toFixed(3)}</span></div>
-        <div className="flex justify-between"><span>C. de RED</span><span>{NETWORK_COST} USDT</span></div>
+        <div className="flex justify-between">
+          <span>TC Spot</span>
+          <span>${spotNum.toFixed(3)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Precio de compra</span>
+          <span>${buyPrice.toFixed(3)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Precio de venta</span>
+          <span>${sellPrice.toFixed(3)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>C. de RED</span>
+          <span>{NETWORK_COST} USDT</span>
+        </div>
       </div>
 
+      {/* resultado final */}  
       <div className="text-lg font-semibold flex justify-between">
         <span>Cantidad</span>
         <span>{finalAmount.toFixed(3)} USDT</span>
       </div>
 
+      {/* botones */}  
       <div className="flex justify-between space-x-2">
         <button
           onClick={copyAsImage}
@@ -114,7 +137,10 @@ export default function OperationView() {
           📸 Copiar como imagen
         </button>
         <button
-          onClick={() => { setDeposited(''); setSpot('') }}
+          onClick={() => {
+            setDeposited('')
+            setSpot('')
+          }}
           className="flex-1 bg-red-600 text-white py-2 rounded hover:bg-red-500"
         >
           ❌ Limpiar
