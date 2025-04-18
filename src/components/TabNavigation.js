@@ -6,6 +6,8 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
     { id: 2, name: 'Base de Clientes' },
     { id: 3, name: 'Movimientos' },
     { id: 4, name: 'BOT BINANCE' } // ✅ Solo Binance Bot
+    { id: 4, name: 'BOT BINANCE' },
+    { id: 5, name: 'Operación' } // ← nueva pestaña
   ];
 
   return (
