@@ -5,6 +5,7 @@ import GeneralBalanceView from './components/GeneralBalanceView';
 import ClientsDatabase from './components/ClientsDatabase';
 import TransactionsView from './components/TransactionsView';
 import BinanceBotPanel from './components/BinanceBotPanel';
+import OperationTab from './components/OperationTab';
 
 import { db } from './firebase/config';
 import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore';
@@ -82,6 +83,7 @@ const App = () => {
         {activeTab === 2 && <ClientsDatabase clients={clients} updateClients={updateClients} />}
         {activeTab === 3 && <TransactionsView clients={clients} />}
         {activeTab === 4 && <BinanceBotPanel />}
+        {activeTab === 5 && <OperationTab />}    {/* ← Aquí */}  
       </div>
     </div>
   );
