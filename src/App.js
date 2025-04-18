@@ -23,6 +23,14 @@ const App = () => {
           const client = docSnap.data();
           client.id = docSnap.id;
 
+          // ✅ Convertir lastUpdated y createdAt en objetos Date
+          if (client.lastUpdated) {
+            client.lastUpdated = new Date(client.lastUpdated);
+          }
+          if (client.createdAt) {
+            client.createdAt = new Date(client.createdAt);
+          }
+
           const txSnapshot = await getDocs(collection(doc(db, 'clients', client.id), 'transactions'));
           client.transactions = txSnapshot.docs.map((tx) => {
             const txData = tx.data();
@@ -48,41 +56,4 @@ const App = () => {
   }, []);
 
   // 🔼 Subir datos manualmente (si hay cambios locales)
-  const updateClients = async (newClients) => {
-    // ✅ Ordenarlos localmente antes de sincronizar
-    const sortedClients = [...newClients].sort((a, b) => {
-      const aTime = new Date(a.lastUpdated || a.createdAt).getTime();
-      const bTime = new Date(b.lastUpdated || b.createdAt).getTime();
-      return bTime - aTime;
-    });
-
-    setClients(sortedClients);
-    try {
-      await uploadClientsToFirebase(sortedClients);
-      const now = new Date().toLocaleTimeString();
-      setSyncMessage(`✅ Sincronizado: ${now}`);
-    } catch {
-      setSyncMessage('❌ Error al sincronizar con Firebase');
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 pt-20">
-      <LayoutHeader />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
-
-        {syncMessage && (
-          <div className="text-sm text-center mb-4 text-green-600">{syncMessage}</div>
-        )}
-
-        {activeTab === 1 && <GeneralBalanceView clients={clients} />}
-        {activeTab === 2 && <ClientsDatabase clients={clients} updateClients={updateClients} />}
-        {activeTab === 3 && <TransactionsView clients={clients} />}
-        {activeTab === 4 && <BinanceBotPanel />}
-      </div>
-    </div>
-  );
-};
-
-export default App;
+  const updateClients
