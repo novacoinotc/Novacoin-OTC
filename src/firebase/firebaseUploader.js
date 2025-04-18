@@ -1,4 +1,5 @@
 // src/firebase/firebaseUploader.js
+
 import { db } from './config';
 import {
   collection,
@@ -10,73 +11,73 @@ import {
 } from 'firebase/firestore';
 
 /**
- * Convierte un valor que puede ser:
+ * Dado un valor que puede ser:
  * - Firestore Timestamp (tiene .toDate())
  * - JS Date
- * - string ISO
+ * - string (ISO u otro formato)
  * - number (milisegundos)
- * en un ISO string válido.
+ * devuelve siempre un ISO string válido.
  */
 function normalizeToISO(value) {
-  if (!value) {
-    return new Date().toISOString();
+  try {
+    // 1) Firestore Timestamp
+    if (value && typeof value.toDate === 'function') {
+      const d = value.toDate();
+      if (!isNaN(d.getTime())) return d.toISOString();
+    }
+
+    // 2) JS Date
+    if (value instanceof Date) {
+      if (!isNaN(value.getTime())) return value.toISOString();
+    }
+
+    // 3) number (milisegundos) o string
+    if (typeof value === 'number' || typeof value === 'string') {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) return d.toISOString();
+    }
+  } catch (e) {
+    // cualquier error de parseo, cae al fallback
   }
-  // Firestore Timestamp
-  if (typeof value.toDate === 'function') {
-    return value.toDate().toISOString();
-  }
-  // JS Date
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-  // número (milisegundos)
-  if (typeof value === 'number') {
-    const d = new Date(value);
-    return isNaN(d) ? new Date().toISOString() : d.toISOString();
-  }
-  // string
-  if (typeof value === 'string') {
-    const d = new Date(value);
-    return isNaN(d) ? new Date().toISOString() : d.toISOString();
-  }
-  // fallback
+
+  // 4) Fallback: ahora
   return new Date().toISOString();
 }
 
 /**
- * 🔼 Subir clientes y transacciones a Firebase con timestamps consistentes
+ * 🔼 Sube TOTALES de clientes y transacciones con timestamps normalizados
  */
 export const uploadClientsToFirebase = async (clientsData) => {
   const batch = writeBatch(db);
 
   try {
     for (const client of clientsData) {
-      // Aseguramos ID
-      const clientId = client.id || doc(collection(db, 'clients')).id;
+      // ID (nuevo o existente)
+      const clientId  = client.id || doc(collection(db, 'clients')).id;
       const clientRef = doc(db, 'clients', clientId);
 
-      // Normalizamos createdAt y lastUpdated
+      // Normalizo createdAt / lastUpdated
       const createdAtIso   = normalizeToISO(client.createdAt);
       const lastUpdatedIso = normalizeToISO(client.lastUpdated || client.createdAt || createdAtIso);
 
       batch.set(clientRef, {
-        name: client.name,
-        balance: client.balance,
-        createdAt: createdAtIso,
+        name:       client.name,
+        balance:    client.balance,
+        createdAt:  createdAtIso,
         lastUpdated: lastUpdatedIso
       });
 
-      // Subimos transacciones
+      // Subo sus transacciones
       if (Array.isArray(client.transactions)) {
         const txColRef = collection(clientRef, 'transactions');
         for (const tx of client.transactions) {
-          const txId  = tx.id || doc(txColRef).id;
-          const txRef = doc(txColRef, txId);
-          const tsIso = normalizeToISO(tx.timestamp);
+          const txId    = tx.id  || doc(txColRef).id;
+          const txRef   = doc(txColRef, txId);
+          const tsIso   = normalizeToISO(tx.timestamp);
 
           batch.set(txRef, {
             ...tx,
-            id: txId,
+            id:        txId,
             timestamp: tsIso
           });
         }
@@ -86,6 +87,7 @@ export const uploadClientsToFirebase = async (clientsData) => {
     await batch.commit();
     console.log('✅ Datos subidos exitosamente a Firebase');
     return true;
+
   } catch (error) {
     console.error('❌ Error al subir datos a Firebase:', error);
     throw error;
@@ -93,13 +95,13 @@ export const uploadClientsToFirebase = async (clientsData) => {
 };
 
 /**
- * 🔽 Cargar todos los clientes (y sus transacciones) desde Firebase
+ * 🔽 Carga todos los clientes (y sus transacciones) desde Firebase
  */
 export const loadClientsFromFirebase = async () => {
   try {
     const clientsSnap = await getDocs(collection(db, 'clients'));
     const clients = await Promise.all(
-      clientsSnap.docs.map(async (docSnap) => {
+      clientsSnap.docs.map(async docSnap => {
         const client = docSnap.data();
         client.id = docSnap.id;
 
@@ -116,14 +118,15 @@ export const loadClientsFromFirebase = async () => {
       })
     );
     return clients;
+
   } catch (error) {
     console.error('❌ Error al cargar clientes desde Firebase:', error);
     return [];
   }
 };
 
-/**
- * 🗑 Eliminar un cliente completo
+/**  
+ * 🗑 Eliminar un cliente completo  
  */
 export const deleteClientFromFirebase = async (clientId) => {
   try {
@@ -134,8 +137,8 @@ export const deleteClientFromFirebase = async (clientId) => {
   }
 };
 
-/**
- * 🗑 Eliminar una transacción específica
+/**  
+ * 🗑 Eliminar una transacción  
  */
 export const deleteTransactionFromFirebase = async (clientId, transactionId) => {
   try {
@@ -149,7 +152,7 @@ export const deleteTransactionFromFirebase = async (clientId, transactionId) => 
 };
 
 /**
- * 🔁 Actualizar una transacción y marcar lastUpdated en el cliente
+ * 🔁 Actualizar una transacción + marcar lastUpdated en el cliente
  */
 export const updateTransactionInFirebase = async (clientId, transaction) => {
   try {
@@ -162,6 +165,7 @@ export const updateTransactionInFirebase = async (clientId, transaction) => {
     });
 
     console.log(`🔁 Transacción ${transaction.id} actualizada`);
+
   } catch (error) {
     console.error('❌ Error al actualizar transacción:', error);
   }
