@@ -9,6 +9,40 @@ import {
 } from 'firebase/firestore';
 
 /**
+ * Convierte un valor que puede ser:
+ * - Firestore Timestamp (tiene .toDate())
+ * - Date de JS
+ * - string ISO
+ * - number (milisegundos)
+ * en un ISO string válido.
+ */
+function normalizeToISO(value) {
+  if (!value) {
+    return new Date().toISOString();
+  }
+  // Firestore Timestamp
+  if (typeof value.toDate === 'function') {
+    return value.toDate().toISOString();
+  }
+  // JS Date
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  // número (milisegundos)
+  if (typeof value === 'number') {
+    return new Date(value).toISOString();
+  }
+  // string
+  if (typeof value === 'string') {
+    // si ya es ISO válido, lo dejamos; si no, probamos a parsearlo
+    const d = new Date(value);
+    return isNaN(d) ? new Date().toISOString() : d.toISOString();
+  }
+  // fallback
+  return new Date().toISOString();
+}
+
+/**
  * 🔼 Subir clientes y transacciones a Firebase con timestamps consistentes
  */
 export const uploadClientsToFirebase = async (clientsData) => {
@@ -20,21 +54,11 @@ export const uploadClientsToFirebase = async (clientsData) => {
       const clientId = client.id || doc(collection(db, 'clients')).id;
       const clientRef = doc(db, 'clients', clientId);
 
-      // — Normalizar createdAt —
-      const createdAtIso = client.createdAt
-        ? (typeof client.createdAt === 'string'
-            ? client.createdAt
-            : new Date(client.createdAt).toISOString())
-        : new Date().toISOString();
+      // Normalizamos createdAt y lastUpdated
+      const createdAtIso = normalizeToISO(client.createdAt);
+      const lastUpdatedIso = normalizeToISO(client.lastUpdated || client.createdAt || createdAtIso);
 
-      // — Normalizar lastUpdated (o fallback a createdAt) —
-      const lastUpdatedIso = client.lastUpdated
-        ? (typeof client.lastUpdated === 'string'
-            ? client.lastUpdated
-            : new Date(client.lastUpdated).toISOString())
-        : createdAtIso;
-
-      // Datos del documento cliente
+      // Preparamos datos del cliente
       const clientDocData = {
         name: client.name,
         balance: client.balance,
@@ -43,19 +67,13 @@ export const uploadClientsToFirebase = async (clientsData) => {
       };
       batch.set(clientRef, clientDocData);
 
-      // — Subir cada transacción con timestamp normalizado —
+      // Transacciones
       if (Array.isArray(client.transactions)) {
         const txColRef = collection(clientRef, 'transactions');
-
         for (const tx of client.transactions) {
           const txId = tx.id || doc(txColRef).id;
           const txRef = doc(txColRef, txId);
-
-          const timestampIso = tx.timestamp
-            ? (typeof tx.timestamp === 'string'
-                ? tx.timestamp
-                : new Date(tx.timestamp).toISOString())
-            : new Date().toISOString();
+          const timestampIso = normalizeToISO(tx.timestamp);
 
           batch.set(txRef, {
             ...tx,
@@ -76,7 +94,7 @@ export const uploadClientsToFirebase = async (clientsData) => {
 };
 
 /**
- * 🔽 Carga todos los clientes y sus transacciones desde Firebase
+ * 🔽 Obtener todos los clientes (y sus transacciones) desde Firebase
  */
 export const loadClientsFromFirebase = async () => {
   try {
