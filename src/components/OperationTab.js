@@ -20,39 +20,40 @@ export default function OperationTab() {
   const ref = useRef(null)
 
   // Estados principales
-  const [mode, setMode]         = useState('cliente') 
+  const [mode, setMode]             = useState('cliente')
   const [depositRaw, setDepositRaw] = useState(() => localStorage.getItem('op_deposit') || '')
-  const [tcRaw, setTcRaw]       = useState(() => localStorage.getItem('op_spot') || '')
-  const [operator, setOperator] = useState(() => localStorage.getItem('op_operator') || 'Issac')
-  const [history, setHistory]   = useState(() => {
+  const [tcRaw, setTcRaw]           = useState(() => localStorage.getItem('op_spot') || '')
+  const [operator, setOperator]     = useState(() => localStorage.getItem('op_operator') || 'Issac')
+  const [history, setHistory]       = useState(() => {
     try { return JSON.parse(localStorage.getItem('op_history')) || [] }
     catch { return [] }
   })
+  const [lastFolio, setLastFolio]   = useState('')
 
   // Filtros del historial
-  const [filterMode, setFilterMode]   = useState('all')
+  const [filterMode, setFilterMode]       = useState('all')
   const [filterOperator, setFilterOperator] = useState('all')
+  const [filterFolio, setFilterFolio]     = useState('')
 
-  // Persistencia en localStorage
+  // Persistencia
   useEffect(() => { localStorage.setItem('op_deposit', depositRaw) },   [depositRaw])
-  useEffect(() => { localStorage.setItem('op_spot',    tcRaw)     },   [tcRaw])
-  useEffect(() => { localStorage.setItem('op_operator',operator)  },   [operator])
+  useEffect(() => { localStorage.setItem('op_spot',    tcRaw)      },   [tcRaw])
+  useEffect(() => { localStorage.setItem('op_operator',operator)   },   [operator])
   useEffect(() => { localStorage.setItem('op_history', JSON.stringify(history)) }, [history])
 
   // Parseos numéricos
   const depNum = parseFloat(depositRaw.replace(/,/g, '')) || 0
   const tcNum  = parseFloat(tcRaw) || 1
 
-  // Operador actual y si es special
+  // Operador actual
   const op = OPERATORS.find(o => o.name === operator) || OPERATORS[0]
   const isSpecial = operator === 'Andres' || operator === 'German'
-  // Offset para mostrar “Costo Final”
   const offsetDisplay = isSpecial ? 0.03 : 0.05
 
   // Denominador & cálculo de USDT
   const denomCalc = mode === 'cliente'
-    ? tcNum              // cliente divide sobre tc
-    : tcNum + 0.03       // operador siempre sobre spot+0.03
+    ? tcNum
+    : tcNum + 0.03
   const usdtAmount = depNum / denomCalc - NETWORK_COST
 
   // Formato con comas para el depósito
@@ -80,28 +81,44 @@ export default function OperationTab() {
       resultadoUSDT: isNaN(usdtAmount) ? '0.000' : usdtAmount.toFixed(3),
     }
     setHistory([record, ...history])
+    setLastFolio(folio)
   }
 
-  // History filtrado
+  // Copiar como imagen
+  const copyAsImage = async () => {
+    if (!ref.current || !window.html2canvas) return
+    const canvas = await window.html2canvas(ref.current)
+    canvas.toBlob(blob => {
+      if (!blob) return
+      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    })
+  }
+
+  // Historial filtrado
   const filteredHistory = history.filter(h => {
-    const okMode = filterMode === 'all' || h.modo === filterMode
-    const okOp   = filterOperator === 'all' || h.operador === filterOperator
-    return okMode && okOp
+    const okMode     = filterMode === 'all'     || h.modo === filterMode
+    const okOp       = filterOperator === 'all' || h.operador === filterOperator
+    const okFolio    = !filterFolio || h.folio.includes(filterFolio)
+    return okMode && okOp && okFolio
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4">
 
-      {/* ─── Caja principal ───────────────────────────────────────────── */}
+      {/* ─── Caja de Cotización ───────────────────────────────────────────── */}
       <div
         ref={ref}
-        className="max-w-md mx-auto p-4 rounded-xl shadow-lg bg-white space-y-4"
-        style={{ border: `3px solid ${op.color}` }}
+        className="max-w-md mx-auto p-4 rounded-xl shadow-lg bg-[#1e3a8a] text-white space-y-3"
       >
-        <h2
-          className="text-lg font-bold text-center"
-          style={{ color: op.color }}
-        >
+        {/* Logo */}
+        <img
+          src="https://i.ibb.co/nThZb3q/NOVACOIN-1.png"
+          alt="NovaCoin"
+          className="mx-auto mb-2 w-24"
+        />
+
+        {/* Título */}
+        <h2 className="text-lg font-bold text-center">
           NovaCoin · {mode === 'cliente' ? 'Cliente' : 'Operador'}
         </h2>
 
@@ -113,7 +130,7 @@ export default function OperationTab() {
               onClick={() => setMode(m)}
               className={`px-3 py-1 text-sm rounded-full ${
                 mode === m
-                  ? 'bg-gray-800 text-white'
+                  ? 'bg-white text-[#1e3a8a]'
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
@@ -125,9 +142,9 @@ export default function OperationTab() {
         {/* Operador (solo operador) */}
         {mode === 'operador' && (
           <div>
-            <label className="text-xs font-medium">Operador</label>
+            <label className="text-xs">Operador</label>
             <select
-              className="w-full text-sm border px-2 py-1 rounded mb-2"
+              className="w-full text-sm rounded px-2 py-1 mb-2 text-[#1e3a8a]"
               value={operator}
               onChange={e => setOperator(e.target.value)}
             >
@@ -138,44 +155,42 @@ export default function OperationTab() {
           </div>
         )}
 
-        {/* Entradas */}
+        {/* Entradas (más compactas) */}
         <div className="space-y-2">
           <div className="flex items-center text-sm">
-            <span className="w-24">Depositado:</span>
-            <span className="px-2 bg-gray-100 rounded-l">$</span>
+            <span className="w-20">Depositado:</span>
+            <span className="px-2 bg-white text-[#1e3a8a] rounded-l">$</span>
             <input
               type="text"
               value={depositRaw}
               onChange={e => setDepositRaw(e.target.value)}
               onBlur={handleDepositBlur}
               onFocus={handleDepositFocus}
-              className="flex-1 text-sm border-t border-b border-r px-2 py-1 rounded-r"
+              className="w-28 text-sm px-2 py-1 rounded-r border-none"
             />
           </div>
           <div className="flex items-center text-sm">
-            <span className="w-24">{mode==='cliente'?'TC Spot:':'Precio Spot:'}</span>
-            <span className="px-2 bg-gray-100 rounded-l">$</span>
+            <span className="w-20">{mode==='cliente'?'TC Spot:':'Precio Spot:'}</span>
+            <span className="px-2 bg-white text-[#1e3a8a] rounded-l">$</span>
             <input
               type="number"
               value={tcRaw}
               onChange={e => setTcRaw(e.target.value)}
-              className="flex-1 text-sm border-t border-b border-r px-2 py-1 rounded-r"
+              className="w-28 text-sm px-2 py-1 rounded-r border-none"
             />
           </div>
         </div>
 
         {/* Desglose para operador */}
         {mode === 'operador' && (
-          <div className="text-sm bg-gray-50 p-2 rounded space-y-1">
+          <div className="text-sm bg-white bg-opacity-20 p-2 rounded space-y-1">
             <div className="flex justify-between">
               <span>Precio spot</span>
               <span>${tcNum.toFixed(3)}</span>
             </div>
             <div className="flex justify-between">
               <span>Costo final</span>
-              <span style={{ color: op.color, fontWeight: 'bold' }}>
-                ${(tcNum + offsetDisplay).toFixed(3)}
-              </span>
+              <span className="font-bold">${(tcNum + offsetDisplay).toFixed(3)}</span>
             </div>
             <div className="flex justify-between">
               <span>Costo de red</span>
@@ -185,31 +200,50 @@ export default function OperationTab() {
         )}
 
         {/* Resultado */}
-        <div className="text-center text-lg font-semibold">
+        <div className="text-center text-xl font-semibold">
           {isNaN(usdtAmount)
             ? '0.000 USDT'
             : `${usdtAmount.toFixed(3)} USDT`
           }
         </div>
 
-        {/* Botón Firmar */}
-        <div className="text-center">
-          <button
-            onClick={handleSign}
-            className="px-6 py-2 bg-green-600 text-white rounded-full text-sm hover:bg-green-500"
-          >
-            Firmar
-          </button>
-        </div>
+        {/* Folio generado */}
+        {lastFolio && (
+          <div className="text-center text-sm">
+            Folio: <span className="font-mono">{lastFolio}</span>
+          </div>
+        )}
       </div>
 
+      {/* ─── Botones fuera del recuadro ──────────────────────────────────── */}
+      <div className="max-w-md mx-auto flex justify-between gap-2">
+        <button
+          onClick={handleSign}
+          className="flex-1 px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-500"
+        >
+          Firmar
+        </button>
+        <button
+          onClick={copyAsImage}
+          className="flex-1 px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-gray-700"
+        >
+          📸 Copiar imagen
+        </button>
+      </div>
 
-      {/* ─── Historial Info ───────────────────────────────────────────── */}
+      {/* ─── Historial de Cotizaciones ──────────────────────────────────── */}
       <div className="max-w-md mx-auto p-4 rounded-xl shadow-lg bg-white space-y-3">
         <h3 className="text-sm font-medium">Historial de Cotizaciones</h3>
 
         {/* Filtros */}
         <div className="flex gap-2 text-xs mb-2">
+          <input
+            type="text"
+            placeholder="Folio..."
+            value={filterFolio}
+            onChange={e => setFilterFolio(e.target.value)}
+            className="flex-1 border px-2 py-1 rounded"
+          />
           <select
             className="flex-1 border px-2 py-1 rounded"
             value={filterMode}
@@ -231,8 +265,8 @@ export default function OperationTab() {
           </select>
         </div>
 
-        {/* Tabla */}
-        <div className="max-h-40 overflow-y-auto text-xs">
+        {/* Tabla (más alta) */}
+        <div className="max-h-80 overflow-y-auto text-xs">
           <table className="w-full border-collapse">
             <thead>
               <tr>
@@ -270,7 +304,6 @@ export default function OperationTab() {
           </table>
         </div>
       </div>
-
     </div>
   )
 }
