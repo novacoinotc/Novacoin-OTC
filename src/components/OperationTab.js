@@ -1,198 +1,205 @@
 // src/components/OperationTab.js
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState } from 'react'
 
-// Lista de operadores y sus colores + reglas
 const OPERATORS = [
-  { name: 'Gael',      color: '#FACC15', purchaseOffset: 0.02, saleOffset: 0.05, usePurchaseForFinal: true },
-  { name: 'Christian', color: '#F97316', purchaseOffset: 0.02, saleOffset: 0.05, usePurchaseForFinal: true },
-  { name: 'Santy',     color: '#3B82F6', purchaseOffset: 0.02, saleOffset: 0.05, usePurchaseForFinal: true },
-  { name: 'Flaco',     color: '#7F1D1D', purchaseOffset: 0.02, saleOffset: 0.05, usePurchaseForFinal: true },
-  { name: 'Andy',      color: '#EC4899', purchaseOffset: 0.02, saleOffset: 0.05, usePurchaseForFinal: true },
-  { name: 'Issac',     color: '#8B5CF6', purchaseOffset: 0.02, saleOffset: 0.05, usePurchaseForFinal: true },
-  { name: 'Andres',    color: '#22C55E', purchaseOffset: 0.00, saleOffset: 0.03, usePurchaseForFinal: false },
-  { name: 'German',    color: '#A5B4FC', purchaseOffset: 0.00, saleOffset: 0.03, usePurchaseForFinal: false },
+  { name: 'Gael',      color: '#FACC15' }, // amarillo
+  { name: 'Christian', color: '#F97316' }, // naranja
+  { name: 'Santy',     color: '#3B82F6' }, // azul
+  { name: 'Flaco',     color: '#7F1D1D' }, // tinto
+  { name: 'Andy',      color: '#EC4899' }, // rosa
+  { name: 'Issac',     color: '#8B5CF6' }, // morado
+  { name: 'Andres',    color: '#22C55E' }, // verde
+  { name: 'German',    color: '#A5B4FC' }  // morado claro
 ]
 
-// Comisión fija de red
-const NETWORK_COST = 2 // USDT
-
 export default function OperationTab() {
-  const containerRef = useRef(null)
+  const [mode, setMode] = useState('cliente')   // 'cliente' | 'operador'
+  const [deposit, setDeposit] = useState('')    // MXN depositados
+  const [tc, setTc]         = useState('')      // TC para cliente
+  const [networkFee, setNetworkFee] = useState('') // USDT
 
-  // Estado y carga/guarda en localStorage
-  const [mode, setMode]       = useState('cliente')  // 'cliente' o 'operador'
-  const [deposited, setDeposited]   = useState(() => localStorage.getItem('op_deposit')   || '')
-  const [tc, setTc]                 = useState(() => localStorage.getItem('op_tc')        || '')
-  const [spot, setSpot]             = useState(() => localStorage.getItem('op_spot')      || '')
-  const [networkFee, setNetworkFee] = useState(() => localStorage.getItem('op_fee')       || '')
-  const [operator, setOperator]     = useState(() => localStorage.getItem('op_operator')  || 'Issac')
+  // Operador
+  const [spotPrice, setSpotPrice] = useState('')
+  const [buyPrice, setBuyPrice]   = useState('')
+  const [sellFactor, setSellFactor] = useState('')
+  const [operator, setOperator]     = useState('Issac')
 
-  useEffect(() => { localStorage.setItem('op_deposit', deposited) },   [deposited])
-  useEffect(() => { localStorage.setItem('op_tc',      tc)       },   [tc])
-  useEffect(() => { localStorage.setItem('op_spot',    spot)     },   [spot])
-  useEffect(() => { localStorage.setItem('op_fee',     networkFee)  }, [networkFee])
-  useEffect(() => { localStorage.setItem('op_operator',operator) },   [operator])
-
-  // Números seguros
-  const depNum  = parseFloat(deposited)   || 0
-  const tcNum   = parseFloat(tc)          || 0
-  const spotNum = parseFloat(spot)        || 0
-  const fee     = parseFloat(networkFee)  || NETWORK_COST
-
-  // Encuentra el operador actual
+  // Buscar color
   const op = OPERATORS.find(o => o.name === operator) || OPERATORS[5]
+  const sellColor = op.color
 
-  // Precios
-  const buyPrice  = mode === 'cliente' ? tcNum          : spotNum + op.purchaseOffset
-  const sellPrice = mode === 'cliente' ? tcNum          : spotNum + op.saleOffset
-
-  // Cálculo
-  const rawAmount = depNum / (buyPrice || 1)
-  const finalAmount = mode === 'cliente'
-    ? depNum / (buyPrice || 1) - fee
-    : op.usePurchaseForFinal
-      ? rawAmount - NETWORK_COST
-      : depNum / (spotNum || 1) - NETWORK_COST
-
-  // Copiar como imagen
-  const copyAsImage = async () => {
-    if (!containerRef.current || !window.html2canvas) return
-    const canvas = await window.html2canvas(containerRef.current)
-    canvas.toBlob(blob => {
-      if (!blob) return
-      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-    })
+  // Cálculos
+  const calcClientAmount = () => {
+    const dep = parseFloat(deposit) || 0
+    const rate = parseFloat(tc)       || 1
+    const fee  = parseFloat(networkFee)|| 0
+    return dep / rate - fee
   }
-
-  // Limpiar entradas
-  const clearFields = () => {
-    setDeposited('')
-    setTc('')
-    setSpot('')
-    setNetworkFee('')
+  const calcOperatorAmount = () => {
+    const dep = parseFloat(deposit) || 0
+    const bp  = parseFloat(buyPrice) || 1
+    const coef= parseFloat(sellFactor)|| 1
+    const fee = parseFloat(networkFee)|| 0
+    return (dep / bp) * coef - fee
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="max-w-lg mx-auto p-6 rounded-3xl shadow-2xl"
-      style={{ border: `4px solid ${op.color}` }}
-    >
-      {/* Título */}
-      <h2
-        className="text-2xl font-bold text-center mb-6"
-        style={{ color: op.color }}
-      >
-        NovaCoin · {mode === 'cliente' ? 'Cliente' : 'Operador'}
-      </h2>
+    <div className="bg-white shadow-lg rounded-xl p-6 max-w-md mx-auto">
+      <h2 className="text-2xl font-bold mb-4 text-center">Operación / Cotizador MXN–USDT</h2>
 
-      {/* Cambiar modo */}
-      <div className="flex justify-center gap-4 mb-6">
-        {['cliente','operador'].map(m => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`px-6 py-2 rounded-full transition ${
-              mode === m ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-700'
-            }`}
-          >
-            {m === 'cliente' ? 'Cliente' : 'Operador'}
-          </button>
-        ))}
+      {/* Modo */}
+      <div className="flex justify-center mb-4 space-x-2">
+        <button
+          onClick={() => setMode('cliente')}
+          className={`px-4 py-2 rounded-l-full border ${
+            mode==='cliente' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700'
+          }`}
+        >
+          Cliente
+        </button>
+        <button
+          onClick={() => setMode('operador')}
+          className={`px-4 py-2 rounded-r-full border ${
+            mode==='operador' ? 'bg-black text-white' : 'bg-gray-100 text-gray-700'
+          }`}
+        >
+          Operador
+        </button>
       </div>
 
-      {/* Selector operador (sólo operador) */}
+      {/* Si es operador, desplegable de operador */}
       {mode === 'operador' && (
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">Operador</label>
           <select
-            className="w-full border px-3 py-2 rounded-lg"
             value={operator}
             onChange={e => setOperator(e.target.value)}
+            className="w-full border px-3 py-2 rounded"
           >
-            {OPERATORS.map(o => <option key={o.name} value={o.name}>{o.name}</option>)}
+            {OPERATORS.map(o => (
+              <option key={o.name} value={o.name}>
+                {o.name}
+              </option>
+            ))}
           </select>
         </div>
       )}
 
-      {/* Entradas */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div>
-          <label className="block text-sm">Depositado (MXN)</label>
-          <input
-            type="number"
-            value={deposited}
-            onChange={e => setDeposited(e.target.value)}
-            className="w-full border px-3 py-2 rounded-lg"
-            placeholder="MXN"
-          />
-        </div>
-        {mode === 'cliente' ? (
-          <div>
-            <label className="block text-sm">TC (USDT/MXN)</label>
-            <input
-              type="number"
-              value={tc}
-              onChange={e => setTc(e.target.value)}
-              className="w-full border px-3 py-2 rounded-lg"
-              placeholder="TC"
-            />
-          </div>
-        ) : (
-          <div>
-            <label className="block text-sm">Spot (MXN/USDT)</label>
-            <input
-              type="number"
-              value={spot}
-              onChange={e => setSpot(e.target.value)}
-              className="w-full border px-3 py-2 rounded-lg"
-              placeholder="Spot"
-            />
-          </div>
-        )}
-        <div>
-          <label className="block text-sm">C. RED (USDT)</label>
-          <input
-            type="number"
-            value={networkFee}
-            onChange={e => setNetworkFee(e.target.value)}
-            className="w-full border px-3 py-2 rounded-lg"
-            placeholder="Red"
-          />
-        </div>
-      </div>
+      {/* Tabla */}
+      <table className="w-full text-sm mb-4">
+        <thead>
+          <tr className="bg-black text-white">
+            <th className="p-2">Concepto</th>
+            <th className="p-2 text-right">$</th>
+            <th className="p-2">Base</th>
+          </tr>
+        </thead>
+        <tbody>
+          {/* Depósito */}
+          <tr className="border-b">
+            <td className="p-2">CCY Depositado</td>
+            <td className="p-2 text-right">
+              <input
+                type="number"
+                value={deposit}
+                onChange={e => setDeposit(e.target.value)}
+                className="w-full text-right px-2 py-1 border rounded"
+                placeholder="MXN"
+              />
+            </td>
+            <td className="p-2">MXN</td>
+          </tr>
 
-      {/* Cotización */}
-      <div className="bg-gray-100 p-4 rounded-xl mb-6 space-y-2">
-        <div className="flex justify-between"><span>TC Spot</span><span>${(mode==='cliente'?tcNum:spotNum).toFixed(3)}</span></div>
-        {mode==='operador' && (
-          <>
-            <div className="flex justify-between"><span>Precio compra</span><span>${buyPrice.toFixed(3)}</span></div>
-            <div className="flex justify-between"><span>Precio venta</span><span>${sellPrice.toFixed(3)}</span></div>
-          </>
-        )}
-        <div className="flex justify-between"><span>C. RED</span><span>{NETWORK_COST} USDT</span></div>
-      </div>
+          {/* Modo cliente u operador */}
+          {mode === 'cliente' ? (
+            <tr className="border-b">
+              <td className="p-2">TC</td>
+              <td className="p-2 text-right">
+                <input
+                  type="number"
+                  value={tc}
+                  onChange={e => setTc(e.target.value)}
+                  className="w-full text-right px-2 py-1 border rounded"
+                  placeholder="USDT/MXN"
+                />
+              </td>
+              <td className="p-2">USDT/MXN</td>
+            </tr>
+          ) : (
+            <>
+              <tr className="border-b">
+                <td className="p-2">P. Spot</td>
+                <td className="p-2 text-right">
+                  <input
+                    type="number"
+                    value={spotPrice}
+                    onChange={e => setSpotPrice(e.target.value)}
+                    className="w-full text-right px-2 py-1 border rounded"
+                    placeholder="MXN/USDT"
+                  />
+                </td>
+                <td className="p-2">MXN/USDT</td>
+              </tr>
+              <tr className="border-b">
+                <td className="p-2">P. de compra</td>
+                <td className="p-2 text-right">
+                  <input
+                    type="number"
+                    value={buyPrice}
+                    onChange={e => setBuyPrice(e.target.value)}
+                    className="w-full text-right px-2 py-1 border rounded"
+                    placeholder="MXN/USDT"
+                  />
+                </td>
+                <td className="p-2">MXN/USDT</td>
+              </tr>
+              {/* Aquí remarcamos C. de venta con el color del operador */}
+              <tr className="border-b">
+                <td className="p-2">C. de venta</td>
+                <td
+                  className="p-2 text-right font-semibold"
+                  style={{ color: sellColor }}
+                >
+                  <input
+                    type="number"
+                    value={sellFactor}
+                    onChange={e => setSellFactor(e.target.value)}
+                    className="w-full text-right px-2 py-1 border rounded"
+                    placeholder="Ej: 1.002"
+                    style={{ borderColor: sellColor }}
+                  />
+                </td>
+                <td className="p-2">mxn/usdt</td>
+              </tr>
+            </>
+          )}
+
+          {/* Comisión de red */}
+          <tr className="border-b">
+            <td className="p-2">C. de RED</td>
+            <td className="p-2 text-right">
+              <input
+                type="number"
+                value={networkFee}
+                onChange={e => setNetworkFee(e.target.value)}
+                className="w-full text-right px-2 py-1 border rounded"
+                placeholder="USDT"
+              />
+            </td>
+            <td className="p-2">USDT</td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* Resultado */}
-      <div className="text-center text-xl font-bold mb-6">
-        {finalAmount.toLocaleString(undefined,{minimumFractionDigits:3})} USDT
-      </div>
-
-      {/* Botones */}
-      <div className="flex gap-4">
-        <button
-          onClick={copyAsImage}
-          className="flex-1 bg-gray-800 text-white py-2 rounded-full hover:bg-gray-700"
-        >
-          📸 Copiar imagen
-        </button>
-        <button
-          onClick={clearFields}
-          className="flex-1 bg-red-600 text-white py-2 rounded-full hover:bg-red-500"
-        >
-          ❌ Limpiar
-        </button>
+      <div className="flex justify-between items-center text-lg font-bold">
+        <span>Cantidad</span>
+        <span>
+          {mode === 'cliente'
+            ? calcClientAmount().toLocaleString(undefined, { minimumFractionDigits: 6 })
+            : calcOperatorAmount().toLocaleString(undefined, { minimumFractionDigits: 6 })
+          } USDT
+        </span>
       </div>
     </div>
   )
