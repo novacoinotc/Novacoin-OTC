@@ -1,74 +1,71 @@
-import React, { useState, useEffect } from 'react';
-import LayoutHeader from './components/LayoutHeader';
-import TabNavigation from './components/TabNavigation';
-import GeneralBalanceView from './components/GeneralBalanceView';
-import ClientsDatabase from './components/ClientsDatabase';
-import TransactionsView from './components/TransactionsView';
-import BinanceBotPanel from './components/BinanceBotPanel';
-import OperationTab from './components/OperationTab';
-import OperationView    from './components/OperationView';
+// src/App.js
+import React, { useState, useEffect } from 'react'
+import LayoutHeader   from './components/LayoutHeader'
+import TabNavigation  from './components/TabNavigation'
+import GeneralBalanceView from './components/GeneralBalanceView'
+import ClientsDatabase   from './components/ClientsDatabase'
+import TransactionsView  from './components/TransactionsView'
+import BinanceBotPanel   from './components/BinanceBotPanel'
+// IMPORTA sólo OperationTab
+import OperationTab      from './components/OperationTab'
 
-import { db } from './firebase/config';
-import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore';
-import { uploadClientsToFirebase } from './firebase/firebaseUploader';
+import { db } from './firebase/config'
+import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore'
+import { uploadClientsToFirebase } from './firebase/firebaseUploader'
 
 const App = () => {
-  const [activeTab, setActiveTab] = useState(1);
-  const [clients, setClients] = useState([]);
-  const [syncMessage, setSyncMessage] = useState('');
+  const [activeTab, setActiveTab] = useState(1)
+  const [clients, setClients]     = useState([])
+  const [syncMessage, setSyncMessage] = useState('')
 
-  // 🔁 Escuchar cambios en tiempo real desde Firebase
+  // 🔁 Escuchar cambios en Firebase
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'clients'), async (snapshot) => {
-      const updatedClients = await Promise.all(
-        snapshot.docs.map(async (docSnap) => {
-          const client = docSnap.data();
-          client.id = docSnap.id;
+    const unsubscribe = onSnapshot(collection(db, 'clients'), async snapshot => {
+      const updated = await Promise.all(
+        snapshot.docs.map(async docSnap => {
+          const c = docSnap.data()
+          c.id = docSnap.id
+          c.createdAt  = c.createdAt  ? new Date(c.createdAt)  : new Date()
+          c.lastUpdated= c.lastUpdated? new Date(c.lastUpdated): c.createdAt
 
-          client.createdAt = client.createdAt ? new Date(client.createdAt) : new Date();
-          client.lastUpdated = client.lastUpdated ? new Date(client.lastUpdated) : client.createdAt;
-
-          const txSnapshot = await getDocs(collection(doc(db, 'clients', client.id), 'transactions'));
-          client.transactions = txSnapshot.docs.map((tx) => {
-            const txData = tx.data();
-            txData.id = tx.id;
-            return txData;
-          });
-
-          return client;
+          const txSnap = await getDocs(collection(doc(db,'clients',c.id),'transactions'))
+          c.transactions = txSnap.docs.map(tx => {
+            const d = tx.data()
+            d.id = tx.id
+            return d
+          })
+          return c
         })
-      );
+      )
 
-      // ✅ Mostrar primero los más recientes (última actualización)
-      const sortedByLastUpdate = updatedClients.sort((a, b) => {
-        const aTime = new Date(b.lastUpdated || b.createdAt).getTime();
-        const bTime = new Date(a.lastUpdated || a.createdAt).getTime();
-        return aTime - bTime;
-      });
+      // ordenar por última actualización
+      updated.sort((a,b) => {
+        const ta = new Date(b.lastUpdated||b.createdAt).getTime()
+        const tb = new Date(a.lastUpdated||a.createdAt).getTime()
+        return ta - tb
+      })
 
-      setClients(sortedByLastUpdate);
-    });
+      setClients(updated)
+    })
 
-    return () => unsubscribe();
-  }, []);
+    return () => unsubscribe()
+  }, [])
 
-  // 🔼 Subir datos manualmente (si hay cambios locales)
-  const updateClients = async (newClients) => {
-    const sortedClients = [...newClients].sort((a, b) => {
-      const aTime = new Date(b.lastUpdated || b.createdAt).getTime();
-      const bTime = new Date(a.lastUpdated || a.createdAt).getTime();
-      return aTime - bTime;
-    });
-
-    setClients(sortedClients);
+  // 🔼 Subir cambios manuales
+  const updateClients = async newClients => {
+    const sorted = [...newClients].sort((a,b) => {
+      const ta = new Date(b.lastUpdated||b.createdAt).getTime()
+      const tb = new Date(a.lastUpdated||a.createdAt).getTime()
+      return ta - tb
+    })
+    setClients(sorted)
     try {
-      await uploadClientsToFirebase(sortedClients);
-      const now = new Date().toLocaleTimeString();
-      setSyncMessage(`✅ Sincronizado: ${now}`);
+      await uploadClientsToFirebase(sorted)
+      setSyncMessage(`✅ Sincronizado: ${new Date().toLocaleTimeString()}`)
     } catch {
-      setSyncMessage('❌ Error al sincronizar con Firebase');
+      setSyncMessage('❌ Error al sincronizar con Firebase')
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 pt-20">
@@ -77,18 +74,20 @@ const App = () => {
         <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
         {syncMessage && (
-          <div className="text-sm text-center mb-4 text-green-600">{syncMessage}</div>
+          <div className="text-sm text-center mb-4 text-green-600">
+            {syncMessage}
+          </div>
         )}
 
         {activeTab === 1 && <GeneralBalanceView clients={clients} />}
         {activeTab === 2 && <ClientsDatabase clients={clients} updateClients={updateClients} />}
         {activeTab === 3 && <TransactionsView clients={clients} />}
         {activeTab === 4 && <BinanceBotPanel />}
-        {activeTab === 5 && <OperationTab />}    {/* ← Aquí */}  
-        {activeTab === 5 && <OperationView />}
+        {/* ← Sólo un componente OperationTab */}
+        {activeTab === 5 && <OperationTab />}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App
