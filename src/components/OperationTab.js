@@ -19,7 +19,7 @@ const NETWORK_COST = 2
 export default function OperationTab() {
   const ref = useRef(null)
 
-  // Estados
+  // Estados principales
   const [depositRaw, setDepositRaw] = useState(() => localStorage.getItem('op_deposit') || '')
   const [tcRaw, setTcRaw]           = useState(() => localStorage.getItem('op_spot')    || '')
   const [operator, setOperator]     = useState(() => localStorage.getItem('op_operator')|| 'Issac')
@@ -28,6 +28,11 @@ export default function OperationTab() {
     catch { return [] }
   })
   const [lastFolio, setLastFolio]   = useState('')
+
+  // Filtros del historial
+  const [filterMode, setFilterMode]       = useState('all')
+  const [filterOperator, setFilterOperator] = useState('all')
+  const [filterFolio, setFilterFolio]     = useState('')
 
   // Persistencia
   useEffect(() => { localStorage.setItem('op_deposit', depositRaw) },   [depositRaw])
@@ -39,13 +44,13 @@ export default function OperationTab() {
   const depNum = parseFloat(depositRaw.replace(/,/g, '')) || 0
   const tcNum  = parseFloat(tcRaw) || 1
 
-  // Datos operador
-  const op        = OPERATORS.find(o => o.name === operator) || OPERATORS[0]
+  // Operador actual
+  const op = OPERATORS.find(o => o.name === operator) || OPERATORS[0]
   const isSpecial = operator === 'Andres' || operator === 'German'
   const offsetDisplay = isSpecial ? 0.03 : 0.05
 
-  // Cálculos
-  const usdtCliente  = depNum / tcNum - NETWORK_COST
+  // Cálculos separados
+  const usdtCliente  = depNum / tcNum           - NETWORK_COST
   const usdtOperador = depNum / (tcNum + 0.03) - NETWORK_COST
 
   // Formato con comas
@@ -58,11 +63,11 @@ export default function OperationTab() {
     setDepositRaw(depositRaw.replace(/,/g, ''))
   }
 
-  // Firmar cotización (registra modo doble)
+  // Firmar cotización
   const handleSign = () => {
     const folio = Date.now().toString(36).toUpperCase()
     const now   = new Date().toLocaleString()
-    const recs  = [
+    const records = [
       {
         folio, fecha: now, modo: 'cliente',  operador: '—',
         depositado: depNum.toLocaleString(),
@@ -78,28 +83,35 @@ export default function OperationTab() {
         resultadoUSDT: isNaN(usdtOperador) ? '0.000' : usdtOperador.toFixed(3),
       }
     ]
-    setHistory([...recs, ...history])
+    setHistory(records.concat(history))
     setLastFolio(folio)
   }
 
+  // Historial filtrado
+  const filteredHistory = history.filter(h => {
+    const okMode  = filterMode     === 'all' || h.modo     === filterMode
+    const okOp    = filterOperator === 'all' || h.operador === filterOperator
+    const okFolio = !filterFolio || h.folio.includes(filterFolio)
+    return okMode && okOp && okFolio
+  })
+
   return (
-    <div className="space-y-6 px-4">
+    <div className="space-y-8 px-4">
 
       {/* ─── Cliente ────────────────────────────────────────────────────── */}
       <div
-        className="max-w-sm mx-auto p-4 rounded-xl shadow-lg bg-[#0f0d33] text-white text-center space-y-4"
+        className="max-w-sm mx-auto p-6 rounded-xl shadow-lg bg-[#0f0d33] text-white text-center space-y-4"
       >
-        {/* Logo ×2 */}
         <img
           src="https://i.ibb.co/nThZb3q/NOVACOIN-1.png"
           alt="NovaCoin"
           className="mx-auto mb-2 w-64"
         />
-        <h2 className="text-xl font-bold">NovaCoin · Cliente</h2>
+        <h2 className="text-2xl font-bold">NovaCoin · Cliente</h2>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex justify-center items-center gap-2">
-            <label className="w-24 text-right">Depositado:</label>
+            <label className="w-28 text-right">Depositado:</label>
             <input
               type="text"
               value={depositRaw}
@@ -110,7 +122,7 @@ export default function OperationTab() {
             />
           </div>
           <div className="flex justify-center items-center gap-2">
-            <label className="w-24 text-right">TC Spot:</label>
+            <label className="w-28 text-right">TC Spot:</label>
             <input
               type="number"
               value={tcRaw}
@@ -120,33 +132,33 @@ export default function OperationTab() {
           </div>
         </div>
 
-        <div className="text-lg font-semibold">
+        <div className="text-2xl font-semibold">
           {isNaN(usdtCliente)
             ? '0.000 USDT'
-            : `${usdtCliente.toFixed(3)} USDT`
-          }
+            : `${usdtCliente.toFixed(3)} USDT`}
         </div>
 
         {lastFolio && (
-          <div className="text-sm">Folio: <code>{lastFolio}</code></div>
+          <div className="text-sm">
+            Folio: <code>{lastFolio}</code>
+          </div>
         )}
       </div>
 
       {/* ─── Operador ───────────────────────────────────────────────────── */}
       <div
-        className="max-w-sm mx-auto p-4 rounded-xl shadow-lg text-white text-center space-y-4"
+        className="max-w-sm mx-auto p-6 rounded-xl shadow-lg text-white text-center space-y-4"
         style={{ background: op.color }}
       >
-        {/* Logo ×2 */}
         <img
           src="https://i.ibb.co/nThZb3q/NOVACOIN-1.png"
           alt="NovaCoin"
           className="mx-auto mb-2 w-64"
         />
-        <h2 className="text-xl font-bold">NovaCoin · Operador</h2>
+        <h2 className="text-2xl font-bold">NovaCoin · Operador</h2>
 
         <div className="flex justify-center items-center gap-2">
-          <label className="w-24 text-right">Operador:</label>
+          <label className="w-28 text-right">Operador:</label>
           <select
             value={operator}
             onChange={e => setOperator(e.target.value)}
@@ -158,9 +170,9 @@ export default function OperationTab() {
           </select>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex justify-center items-center gap-2">
-            <label className="w-24 text-right">Depositado:</label>
+            <label className="w-28 text-right">Depositado:</label>
             <input
               type="text"
               value={depositRaw}
@@ -171,7 +183,7 @@ export default function OperationTab() {
             />
           </div>
           <div className="flex justify-center items-center gap-2">
-            <label className="w-24 text-right">Precio Spot:</label>
+            <label className="w-28 text-right">Precio Spot:</label>
             <input
               type="number"
               value={tcRaw}
@@ -187,19 +199,20 @@ export default function OperationTab() {
           <div>Costo de red: {NETWORK_COST} USDT</div>
         </div>
 
-        <div className="text-lg font-semibold">
+        <div className="text-2xl font-semibold">
           {isNaN(usdtOperador)
             ? '0.000 USDT'
-            : `${usdtOperador.toFixed(3)} USDT`
-          }
+            : `${usdtOperador.toFixed(3)} USDT`}
         </div>
 
         {lastFolio && (
-          <div className="text-sm">Folio: <code>{lastFolio}</code></div>
+          <div className="text-sm">
+            Folio: <code>{lastFolio}</code>
+          </div>
         )}
       </div>
 
-      {/* ─── Botón Firmar ────────────────────────────────────────────────── */}
+      {/* ─── Firmar ─────────────────────────────────────────────────────── */}
       <div className="max-w-sm mx-auto text-center">
         <button
           onClick={handleSign}
@@ -209,7 +222,7 @@ export default function OperationTab() {
         </button>
       </div>
 
-      {/* ─── Historial de Cotizaciones ──────────────────────────────────── */}
+      {/* ─── Historial ──────────────────────────────────────────────────── */}
       <div className="max-w-xl mx-auto p-4 rounded-xl shadow-lg bg-[#0f0d33] text-white space-y-3">
         <h3 className="text-sm font-medium text-center">Historial de Cotizaciones</h3>
 
