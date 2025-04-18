@@ -23,13 +23,8 @@ const App = () => {
           const client = docSnap.data();
           client.id = docSnap.id;
 
-          // ✅ Convertir lastUpdated y createdAt en objetos Date
-          if (client.lastUpdated) {
-            client.lastUpdated = new Date(client.lastUpdated);
-          }
-          if (client.createdAt) {
-            client.createdAt = new Date(client.createdAt);
-          }
+          client.createdAt = client.createdAt ? new Date(client.createdAt) : new Date();
+          client.lastUpdated = client.lastUpdated ? new Date(client.lastUpdated) : client.createdAt;
 
           const txSnapshot = await getDocs(collection(doc(db, 'clients', client.id), 'transactions'));
           client.transactions = txSnapshot.docs.map((tx) => {
@@ -42,11 +37,11 @@ const App = () => {
         })
       );
 
-      // ✅ Ordenar por fecha de última modificación o creación
+      // ✅ Mostrar primero los más recientes (última actualización)
       const sortedByLastUpdate = updatedClients.sort((a, b) => {
-        const aTime = new Date(a.lastUpdated || a.createdAt).getTime();
-        const bTime = new Date(b.lastUpdated || b.createdAt).getTime();
-        return bTime - aTime;
+        const aTime = new Date(b.lastUpdated || b.createdAt).getTime();
+        const bTime = new Date(a.lastUpdated || a.createdAt).getTime();
+        return aTime - bTime;
       });
 
       setClients(sortedByLastUpdate);
@@ -57,11 +52,10 @@ const App = () => {
 
   // 🔼 Subir datos manualmente (si hay cambios locales)
   const updateClients = async (newClients) => {
-    // ✅ Ordenarlos localmente antes de sincronizar
     const sortedClients = [...newClients].sort((a, b) => {
-      const aTime = new Date(a.lastUpdated || a.createdAt).getTime();
-      const bTime = new Date(b.lastUpdated || b.createdAt).getTime();
-      return bTime - aTime;
+      const aTime = new Date(b.lastUpdated || b.createdAt).getTime();
+      const bTime = new Date(a.lastUpdated || a.createdAt).getTime();
+      return aTime - bTime;
     });
 
     setClients(sortedClients);
