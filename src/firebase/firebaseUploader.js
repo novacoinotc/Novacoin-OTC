@@ -57,3 +57,20 @@ export const uploadClientsToFirebase = async (clientsData) => {
     throw error;
   }
 };
+
+// 🔁 Actualizar una transacción existente y el campo lastUpdated del cliente
+export const updateTransactionInFirebase = async (clientId, transaction) => {
+  try {
+    const txRef = doc(db, 'clients', clientId, 'transactions', transaction.id);
+    const clientRef = doc(db, 'clients', clientId);
+
+    await updateDoc(txRef, transaction);
+    await updateDoc(clientRef, {
+      lastUpdated: new Date().toISOString()
+    });
+
+    console.log(`🔁 Transacción ${transaction.id} actualizada`);
+  } catch (error) {
+    console.error('❌ Error al actualizar transacción:', error);
+  }
+};
