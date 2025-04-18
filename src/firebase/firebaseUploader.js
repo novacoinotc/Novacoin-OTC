@@ -9,44 +9,60 @@ import {
 } from 'firebase/firestore';
 
 /**
- * 🔼 Subir clientes y transacciones a Firebase con control de timestamps consistentes
+ * 🔼 Subir clientes y transacciones a Firebase con timestamps consistentes
  */
 export const uploadClientsToFirebase = async (clientsData) => {
   const batch = writeBatch(db);
 
   try {
     for (const client of clientsData) {
+      // ID del cliente (nuevo o existente)
       const clientId = client.id || doc(collection(db, 'clients')).id;
       const clientRef = doc(db, 'clients', clientId);
 
-      // Usar lastUpdated existente si viene del frontend, o asignar uno nuevo
-      const lastUpdated =
-        client.lastUpdated instanceof Date
-          ? client.lastUpdated.toISOString()
-          : client.lastUpdated || new Date().toISOString();
+      // — Normalizar createdAt —
+      const createdAtIso = client.createdAt
+        ? (typeof client.createdAt === 'string'
+            ? client.createdAt
+            : new Date(client.createdAt).toISOString())
+        : new Date().toISOString();
 
+      // — Normalizar lastUpdated (o fallback a createdAt) —
+      const lastUpdatedIso = client.lastUpdated
+        ? (typeof client.lastUpdated === 'string'
+            ? client.lastUpdated
+            : new Date(client.lastUpdated).toISOString())
+        : createdAtIso;
+
+      // Datos del documento cliente
       const clientDocData = {
         name: client.name,
         balance: client.balance,
-        createdAt: client.createdAt || new Date().toISOString(),
-        lastUpdated
+        createdAt: createdAtIso,
+        lastUpdated: lastUpdatedIso
       };
-
       batch.set(clientRef, clientDocData);
 
-      // Transacciones
+      // — Subir cada transacción con timestamp normalizado —
       if (Array.isArray(client.transactions)) {
         const txColRef = collection(clientRef, 'transactions');
-        client.transactions.forEach(transaction => {
-          const txId = transaction.id || doc(txColRef).id;
+
+        for (const tx of client.transactions) {
+          const txId = tx.id || doc(txColRef).id;
           const txRef = doc(txColRef, txId);
 
+          const timestampIso = tx.timestamp
+            ? (typeof tx.timestamp === 'string'
+                ? tx.timestamp
+                : new Date(tx.timestamp).toISOString())
+            : new Date().toISOString();
+
           batch.set(txRef, {
-            ...transaction,
+            ...tx,
             id: txId,
-            timestamp: transaction.timestamp || new Date().toISOString()
+            timestamp: timestampIso
           });
-        });
+        }
       }
     }
 
@@ -60,7 +76,7 @@ export const uploadClientsToFirebase = async (clientsData) => {
 };
 
 /**
- * 🔽 Obtener todos los clientes (y sus transacciones) desde Firebase
+ * 🔽 Carga todos los clientes y sus transacciones desde Firebase
  */
 export const loadClientsFromFirebase = async () => {
   try {
@@ -70,7 +86,9 @@ export const loadClientsFromFirebase = async () => {
         const client = docSnap.data();
         client.id = docSnap.id;
 
-        const txSnap = await getDocs(collection(doc(db, 'clients', client.id), 'transactions'));
+        const txSnap = await getDocs(
+          collection(doc(db, 'clients', client.id), 'transactions')
+        );
         client.transactions = txSnap.docs.map(txDoc => {
           const tx = txDoc.data();
           tx.id = txDoc.id;
@@ -104,7 +122,9 @@ export const deleteClientFromFirebase = async (clientId) => {
  */
 export const deleteTransactionFromFirebase = async (clientId, transactionId) => {
   try {
-    await deleteDoc(doc(db, 'clients', clientId, 'transactions', transactionId));
+    await deleteDoc(
+      doc(db, 'clients', clientId, 'transactions', transactionId)
+    );
     console.log(`🗑 Transacción ${transactionId} eliminada`);
   } catch (error) {
     console.error('❌ Error al eliminar transacción:', error);
@@ -112,7 +132,7 @@ export const deleteTransactionFromFirebase = async (clientId, transactionId) => 
 };
 
 /**
- * 🔁 Actualizar una transacción existente y marcar lastUpdated en el cliente
+ * 🔁 Actualizar una transacción y marcar lastUpdated en el cliente
  */
 export const updateTransactionInFirebase = async (clientId, transaction) => {
   try {
