@@ -31,9 +31,9 @@ export default function OperationTab() {
   const [lastFolio, setLastFolio]   = useState('')
 
   // Filtros del historial
-  const [filterMode, setFilterMode]       = useState('all')
+  const [filterMode, setFilterMode]         = useState('all')
   const [filterOperator, setFilterOperator] = useState('all')
-  const [filterFolio, setFilterFolio]     = useState('')
+  const [filterFolio, setFilterFolio]       = useState('')
 
   // Persistencia
   useEffect(() => { localStorage.setItem('op_deposit', depositRaw) },   [depositRaw])
@@ -50,13 +50,13 @@ export default function OperationTab() {
   const isSpecial = operator === 'Andres' || operator === 'German'
   const offsetDisplay = isSpecial ? 0.03 : 0.05
 
-  // Denominador & cálculo de USDT
+  // Cálculo de USDT
   const denomCalc = mode === 'cliente'
     ? tcNum
     : tcNum + 0.03
   const usdtAmount = depNum / denomCalc - NETWORK_COST
 
-  // Formato con comas para el depósito
+  // Formato con comas
   const handleDepositBlur = () => {
     if (!depositRaw) return
     const num = parseFloat(depositRaw.replace(/,/g, '')) || 0
@@ -84,21 +84,11 @@ export default function OperationTab() {
     setLastFolio(folio)
   }
 
-  // Copiar como imagen
-  const copyAsImage = async () => {
-    if (!ref.current || !window.html2canvas) return
-    const canvas = await window.html2canvas(ref.current)
-    canvas.toBlob(blob => {
-      if (!blob) return
-      navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-    })
-  }
-
   // Historial filtrado
   const filteredHistory = history.filter(h => {
-    const okMode     = filterMode === 'all'     || h.modo === filterMode
-    const okOp       = filterOperator === 'all' || h.operador === filterOperator
-    const okFolio    = !filterFolio || h.folio.includes(filterFolio)
+    const okMode  = filterMode     === 'all'     || h.modo     === filterMode
+    const okOp    = filterOperator === 'all'     || h.operador === filterOperator
+    const okFolio = !filterFolio    || h.folio.includes(filterFolio)
     return okMode && okOp && okFolio
   })
 
@@ -108,13 +98,14 @@ export default function OperationTab() {
       {/* ─── Caja de Cotización ───────────────────────────────────────────── */}
       <div
         ref={ref}
-        className="max-w-md mx-auto p-4 rounded-xl shadow-lg bg-[#1e3a8a] text-white space-y-3"
+        className="max-w-sm mx-auto p-4 rounded-xl shadow-lg bg-[#0f0d33] text-white space-y-3"
+        style={{ border: `3px solid ${op.color}` }}
       >
-        {/* Logo */}
+        {/* Logo (más grande) */}
         <img
           src="https://i.ibb.co/nThZb3q/NOVACOIN-1.png"
           alt="NovaCoin"
-          className="mx-auto mb-2 w-24"
+          className="mx-auto mb-2 w-32"
         />
 
         {/* Título */}
@@ -130,7 +121,7 @@ export default function OperationTab() {
               onClick={() => setMode(m)}
               className={`px-3 py-1 text-sm rounded-full ${
                 mode === m
-                  ? 'bg-white text-[#1e3a8a]'
+                  ? 'bg-white text-[#0f0d33]'
                   : 'bg-gray-200 text-gray-700'
               }`}
             >
@@ -139,12 +130,12 @@ export default function OperationTab() {
           ))}
         </div>
 
-        {/* Operador (solo operador) */}
+        {/* Operador (solo operador, caja recortada) */}
         {mode === 'operador' && (
-          <div>
-            <label className="text-xs">Operador</label>
+          <div className="flex items-center text-sm">
+            <label className="w-20">Operador</label>
             <select
-              className="w-full text-sm rounded px-2 py-1 mb-2 text-[#1e3a8a]"
+              className="w-32 text-sm rounded px-2 py-1 text-[#0f0d33]"
               value={operator}
               onChange={e => setOperator(e.target.value)}
             >
@@ -155,35 +146,35 @@ export default function OperationTab() {
           </div>
         )}
 
-        {/* Entradas (más compactas) */}
+        {/* Entradas compactas */}
         <div className="space-y-2">
           <div className="flex items-center text-sm">
             <span className="w-20">Depositado:</span>
-            <span className="px-2 bg-white text-[#1e3a8a] rounded-l">$</span>
+            <span className="px-2 bg-[#0f0d33] rounded-l">$</span>
             <input
               type="text"
               value={depositRaw}
               onChange={e => setDepositRaw(e.target.value)}
               onBlur={handleDepositBlur}
               onFocus={handleDepositFocus}
-              className="w-28 text-sm px-2 py-1 rounded-r border-none"
+              className="w-24 text-sm px-2 py-1 rounded-r border-none bg-[#0f0d33] text-white"
             />
           </div>
           <div className="flex items-center text-sm">
             <span className="w-20">{mode==='cliente'?'TC Spot:':'Precio Spot:'}</span>
-            <span className="px-2 bg-white text-[#1e3a8a] rounded-l">$</span>
+            <span className="px-2 bg-[#0f0d33] rounded-l">$</span>
             <input
               type="number"
               value={tcRaw}
               onChange={e => setTcRaw(e.target.value)}
-              className="w-28 text-sm px-2 py-1 rounded-r border-none"
+              className="w-24 text-sm px-2 py-1 rounded-r border-none bg-[#0f0d33] text-white"
             />
           </div>
         </div>
 
         {/* Desglose para operador */}
         {mode === 'operador' && (
-          <div className="text-sm bg-white bg-opacity-20 p-2 rounded space-y-1">
+          <div className="text-sm bg-[#0f0d33] bg-opacity-80 p-2 rounded space-y-1">
             <div className="flex justify-between">
               <span>Precio spot</span>
               <span>${tcNum.toFixed(3)}</span>
@@ -207,7 +198,7 @@ export default function OperationTab() {
           }
         </div>
 
-        {/* Folio generado */}
+        {/* Folio */}
         {lastFolio && (
           <div className="text-center text-sm">
             Folio: <span className="font-mono">{lastFolio}</span>
@@ -215,24 +206,18 @@ export default function OperationTab() {
         )}
       </div>
 
-      {/* ─── Botones fuera del recuadro ──────────────────────────────────── */}
-      <div className="max-w-md mx-auto flex justify-between gap-2">
+      {/* ─── Botón Firmar fuera del recuadro ───────────────────────────────── */}
+      <div className="max-w-sm mx-auto text-center">
         <button
           onClick={handleSign}
-          className="flex-1 px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-500"
+          className="px-6 py-2 bg-green-600 text-white rounded-full text-sm hover:bg-green-500"
         >
           Firmar
         </button>
-        <button
-          onClick={copyAsImage}
-          className="flex-1 px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-gray-700"
-        >
-          📸 Copiar imagen
-        </button>
       </div>
 
-      {/* ─── Historial de Cotizaciones ──────────────────────────────────── */}
-      <div className="max-w-md mx-auto p-4 rounded-xl shadow-lg bg-white space-y-3">
+      {/* ─── Historial de Cotizaciones (más ancho) ──────────────────────────── */}
+      <div className="max-w-xl mx-auto p-4 rounded-xl shadow-lg bg-[#0f0d33] text-white space-y-3">
         <h3 className="text-sm font-medium">Historial de Cotizaciones</h3>
 
         {/* Filtros */}
@@ -242,10 +227,10 @@ export default function OperationTab() {
             placeholder="Folio..."
             value={filterFolio}
             onChange={e => setFilterFolio(e.target.value)}
-            className="flex-1 border px-2 py-1 rounded"
+            className="flex-1 border px-2 py-1 rounded bg-white text-black"
           />
           <select
-            className="flex-1 border px-2 py-1 rounded"
+            className="flex-1 border px-2 py-1 rounded bg-white text-black"
             value={filterMode}
             onChange={e => setFilterMode(e.target.value)}
           >
@@ -254,7 +239,7 @@ export default function OperationTab() {
             <option value="operador">Operador</option>
           </select>
           <select
-            className="flex-1 border px-2 py-1 rounded"
+            className="flex-1 border px-2 py-1 rounded bg-white text-black"
             value={filterOperator}
             onChange={e => setFilterOperator(e.target.value)}
           >
@@ -265,7 +250,7 @@ export default function OperationTab() {
           </select>
         </div>
 
-        {/* Tabla (más alta) */}
+        {/* Tabla */}
         <div className="max-h-80 overflow-y-auto text-xs">
           <table className="w-full border-collapse">
             <thead>
@@ -304,6 +289,7 @@ export default function OperationTab() {
           </table>
         </div>
       </div>
+
     </div>
   )
 }
