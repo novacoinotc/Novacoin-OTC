@@ -1,3 +1,4 @@
+// src/firebase/firebaseUploader.js
 import { db } from './config';
 import {
   collection,
@@ -11,7 +12,7 @@ import {
 /**
  * Convierte un valor que puede ser:
  * - Firestore Timestamp (tiene .toDate())
- * - Date de JS
+ * - JS Date
  * - string ISO
  * - number (milisegundos)
  * en un ISO string válido.
@@ -30,11 +31,11 @@ function normalizeToISO(value) {
   }
   // número (milisegundos)
   if (typeof value === 'number') {
-    return new Date(value).toISOString();
+    const d = new Date(value);
+    return isNaN(d) ? new Date().toISOString() : d.toISOString();
   }
   // string
   if (typeof value === 'string') {
-    // si ya es ISO válido, lo dejamos; si no, probamos a parsearlo
     const d = new Date(value);
     return isNaN(d) ? new Date().toISOString() : d.toISOString();
   }
@@ -50,35 +51,33 @@ export const uploadClientsToFirebase = async (clientsData) => {
 
   try {
     for (const client of clientsData) {
-      // ID del cliente (nuevo o existente)
+      // Aseguramos ID
       const clientId = client.id || doc(collection(db, 'clients')).id;
       const clientRef = doc(db, 'clients', clientId);
 
       // Normalizamos createdAt y lastUpdated
-      const createdAtIso = normalizeToISO(client.createdAt);
+      const createdAtIso   = normalizeToISO(client.createdAt);
       const lastUpdatedIso = normalizeToISO(client.lastUpdated || client.createdAt || createdAtIso);
 
-      // Preparamos datos del cliente
-      const clientDocData = {
+      batch.set(clientRef, {
         name: client.name,
         balance: client.balance,
         createdAt: createdAtIso,
         lastUpdated: lastUpdatedIso
-      };
-      batch.set(clientRef, clientDocData);
+      });
 
-      // Transacciones
+      // Subimos transacciones
       if (Array.isArray(client.transactions)) {
         const txColRef = collection(clientRef, 'transactions');
         for (const tx of client.transactions) {
-          const txId = tx.id || doc(txColRef).id;
+          const txId  = tx.id || doc(txColRef).id;
           const txRef = doc(txColRef, txId);
-          const timestampIso = normalizeToISO(tx.timestamp);
+          const tsIso = normalizeToISO(tx.timestamp);
 
           batch.set(txRef, {
             ...tx,
             id: txId,
-            timestamp: timestampIso
+            timestamp: tsIso
           });
         }
       }
@@ -94,7 +93,7 @@ export const uploadClientsToFirebase = async (clientsData) => {
 };
 
 /**
- * 🔽 Obtener todos los clientes (y sus transacciones) desde Firebase
+ * 🔽 Cargar todos los clientes (y sus transacciones) desde Firebase
  */
 export const loadClientsFromFirebase = async () => {
   try {
@@ -154,7 +153,7 @@ export const deleteTransactionFromFirebase = async (clientId, transactionId) => 
  */
 export const updateTransactionInFirebase = async (clientId, transaction) => {
   try {
-    const txRef = doc(db, 'clients', clientId, 'transactions', transaction.id);
+    const txRef     = doc(db, 'clients', clientId, 'transactions', transaction.id);
     const clientRef = doc(db, 'clients', clientId);
 
     await updateDoc(txRef, transaction);
