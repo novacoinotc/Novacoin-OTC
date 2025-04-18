@@ -1,3 +1,14 @@
+import { db } from './config';
+import {
+  collection,
+  writeBatch,
+  doc,
+  getDocs,
+  deleteDoc,
+  updateDoc
+} from 'firebase/firestore';
+
+// ✅ Subir clientes y transacciones a Firebase con control de timestamps consistentes
 export const uploadClientsToFirebase = async (clientsData) => {
   const batch = writeBatch(db);
 
@@ -6,12 +17,17 @@ export const uploadClientsToFirebase = async (clientsData) => {
       const clientId = client.id || doc(collection(db, 'clients')).id;
       const clientRef = doc(db, 'clients', clientId);
 
-      // Usar lastUpdated existente si ya está definido, si no, usar createdAt o la fecha actual
+      // ✅ Usar lastUpdated existente si ya viene del frontend, o asignar uno nuevo
+      const lastUpdated =
+        client.lastUpdated instanceof Date
+          ? client.lastUpdated.toISOString()
+          : client.lastUpdated || new Date().toISOString();
+
       const clientDocData = {
         name: client.name,
         balance: client.balance,
         createdAt: client.createdAt || new Date().toISOString(),
-        lastUpdated: client.lastUpdated || client.createdAt || new Date().toISOString()
+        lastUpdated // ✅ Siempre se guarda y respeta este campo
       };
 
       batch.set(clientRef, clientDocData);
