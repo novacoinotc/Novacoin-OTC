@@ -19,194 +19,187 @@ const NETWORK_COST = 2
 export default function OperationTab() {
   const ref = useRef(null)
 
-  // Estados principales
-  const [mode, setMode]             = useState('cliente')
+  // Estados
   const [depositRaw, setDepositRaw] = useState(() => localStorage.getItem('op_deposit') || '')
-  const [tcRaw, setTcRaw]           = useState(() => localStorage.getItem('op_spot') || '')
-  const [operator, setOperator]     = useState(() => localStorage.getItem('op_operator') || 'Issac')
+  const [tcRaw, setTcRaw]           = useState(() => localStorage.getItem('op_spot')    || '')
+  const [operator, setOperator]     = useState(() => localStorage.getItem('op_operator')|| 'Issac')
   const [history, setHistory]       = useState(() => {
     try { return JSON.parse(localStorage.getItem('op_history')) || [] }
     catch { return [] }
   })
   const [lastFolio, setLastFolio]   = useState('')
 
-  // Filtros del historial
-  const [filterMode, setFilterMode]         = useState('all')
-  const [filterOperator, setFilterOperator] = useState('all')
-  const [filterFolio, setFilterFolio]       = useState('')
-
   // Persistencia
   useEffect(() => { localStorage.setItem('op_deposit', depositRaw) },   [depositRaw])
-  useEffect(() => { localStorage.setItem('op_spot',    tcRaw)      },   [tcRaw])
-  useEffect(() => { localStorage.setItem('op_operator',operator)   },   [operator])
+  useEffect(() => { localStorage.setItem('op_spot',    tcRaw)     },   [tcRaw])
+  useEffect(() => { localStorage.setItem('op_operator',operator)  },   [operator])
   useEffect(() => { localStorage.setItem('op_history', JSON.stringify(history)) }, [history])
 
   // Parseos numéricos
   const depNum = parseFloat(depositRaw.replace(/,/g, '')) || 0
   const tcNum  = parseFloat(tcRaw) || 1
 
-  // Operador actual
-  const op = OPERATORS.find(o => o.name === operator) || OPERATORS[0]
+  // Datos operador
+  const op        = OPERATORS.find(o => o.name === operator) || OPERATORS[0]
   const isSpecial = operator === 'Andres' || operator === 'German'
   const offsetDisplay = isSpecial ? 0.03 : 0.05
 
-  // Cálculo de USDT
-  const denomCalc = mode === 'cliente'
-    ? tcNum
-    : tcNum + 0.03
-  const usdtAmount = depNum / denomCalc - NETWORK_COST
+  // Cálculos
+  const usdtCliente  = depNum / tcNum - NETWORK_COST
+  const usdtOperador = depNum / (tcNum + 0.03) - NETWORK_COST
 
   // Formato con comas
-  const handleDepositBlur = () => {
+  const handleBlur  = () => {
     if (!depositRaw) return
-    const num = parseFloat(depositRaw.replace(/,/g, '')) || 0
-    setDepositRaw(num.toLocaleString())
+    const n = parseFloat(depositRaw.replace(/,/g, '')) || 0
+    setDepositRaw(n.toLocaleString())
   }
-  const handleDepositFocus = () => {
+  const handleFocus = () => {
     setDepositRaw(depositRaw.replace(/,/g, ''))
   }
 
-  // Firmar cotización
+  // Firmar cotización (registra modo doble)
   const handleSign = () => {
     const folio = Date.now().toString(36).toUpperCase()
     const now   = new Date().toLocaleString()
-    const record = {
-      folio,
-      fecha: now,
-      modo: mode,
-      operador: mode === 'operador' ? operator : '—',
-      depositado: depNum.toLocaleString(),
-      tc: tcNum.toFixed(3),
-      costoFinal: (tcNum + (mode==='cliente'?0:offsetDisplay)).toFixed(3),
-      resultadoUSDT: isNaN(usdtAmount) ? '0.000' : usdtAmount.toFixed(3),
-    }
-    setHistory([record, ...history])
+    const recs  = [
+      {
+        folio, fecha: now, modo: 'cliente',  operador: '—',
+        depositado: depNum.toLocaleString(),
+        tc: tcNum.toFixed(3),
+        costoFinal: tcNum.toFixed(3),
+        resultadoUSDT: isNaN(usdtCliente)  ? '0.000' : usdtCliente.toFixed(3),
+      },
+      {
+        folio, fecha: now, modo: 'operador', operador,
+        depositado: depNum.toLocaleString(),
+        tc: tcNum.toFixed(3),
+        costoFinal: (tcNum + offsetDisplay).toFixed(3),
+        resultadoUSDT: isNaN(usdtOperador) ? '0.000' : usdtOperador.toFixed(3),
+      }
+    ]
+    setHistory([...recs, ...history])
     setLastFolio(folio)
   }
-
-  // Historial filtrado
-  const filteredHistory = history.filter(h => {
-    const okMode  = filterMode     === 'all'     || h.modo     === filterMode
-    const okOp    = filterOperator === 'all'     || h.operador === filterOperator
-    const okFolio = !filterFolio    || h.folio.includes(filterFolio)
-    return okMode && okOp && okFolio
-  })
 
   return (
     <div className="space-y-6 px-4">
 
-      {/* ─── Caja de Cotización ───────────────────────────────────────────── */}
+      {/* ─── Cliente ────────────────────────────────────────────────────── */}
       <div
-        ref={ref}
-        className="max-w-sm mx-auto p-4 rounded-xl shadow-lg bg-[#0f0d33] text-white space-y-3"
-        style={{ border: `3px solid ${op.color}` }}
+        className="max-w-sm mx-auto p-4 rounded-xl shadow-lg bg-[#0f0d33] text-white text-center space-y-4"
       >
-        {/* Logo (más grande) */}
+        {/* Logo ×2 */}
         <img
           src="https://i.ibb.co/nThZb3q/NOVACOIN-1.png"
           alt="NovaCoin"
-          className="mx-auto mb-2 w-32"
+          className="mx-auto mb-2 w-64"
         />
+        <h2 className="text-xl font-bold">NovaCoin · Cliente</h2>
 
-        {/* Título */}
-        <h2 className="text-lg font-bold text-center">
-          NovaCoin · {mode === 'cliente' ? 'Cliente' : 'Operador'}
-        </h2>
-
-        {/* Modo */}
-        <div className="flex justify-center gap-2">
-          {['cliente','operador'].map(m => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              className={`px-3 py-1 text-sm rounded-full ${
-                mode === m
-                  ? 'bg-white text-[#0f0d33]'
-                  : 'bg-gray-200 text-gray-700'
-              }`}
-            >
-              {m === 'cliente' ? 'Cliente' : 'Operador'}
-            </button>
-          ))}
-        </div>
-
-        {/* Operador (solo operador, caja recortada) */}
-        {mode === 'operador' && (
-          <div className="flex items-center text-sm">
-            <label className="w-20">Operador</label>
-            <select
-              className="w-32 text-sm rounded px-2 py-1 text-[#0f0d33]"
-              value={operator}
-              onChange={e => setOperator(e.target.value)}
-            >
-              {OPERATORS.map(o =>
-                <option key={o.name} value={o.name}>{o.name}</option>
-              )}
-            </select>
-          </div>
-        )}
-
-        {/* Entradas compactas */}
         <div className="space-y-2">
-          <div className="flex items-center text-sm">
-            <span className="w-20">Depositado:</span>
-            <span className="px-2 bg-[#0f0d33] rounded-l">$</span>
+          <div className="flex justify-center items-center gap-2">
+            <label className="w-24 text-right">Depositado:</label>
             <input
               type="text"
               value={depositRaw}
               onChange={e => setDepositRaw(e.target.value)}
-              onBlur={handleDepositBlur}
-              onFocus={handleDepositFocus}
-              className="w-24 text-sm px-2 py-1 rounded-r border-none bg-[#0f0d33] text-white"
+              onBlur={handleBlur}
+              onFocus={handleFocus}
+              className="w-28 px-2 py-1 rounded border border-gray-300 bg-white text-black text-center"
             />
           </div>
-          <div className="flex items-center text-sm">
-            <span className="w-20">{mode==='cliente'?'TC Spot:':'Precio Spot:'}</span>
-            <span className="px-2 bg-[#0f0d33] rounded-l">$</span>
+          <div className="flex justify-center items-center gap-2">
+            <label className="w-24 text-right">TC Spot:</label>
             <input
               type="number"
               value={tcRaw}
               onChange={e => setTcRaw(e.target.value)}
-              className="w-24 text-sm px-2 py-1 rounded-r border-none bg-[#0f0d33] text-white"
+              className="w-28 px-2 py-1 rounded border border-gray-300 bg-white text-black text-center"
             />
           </div>
         </div>
 
-        {/* Desglose para operador */}
-        {mode === 'operador' && (
-          <div className="text-sm bg-[#0f0d33] bg-opacity-80 p-2 rounded space-y-1">
-            <div className="flex justify-between">
-              <span>Precio spot</span>
-              <span>${tcNum.toFixed(3)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Costo final</span>
-              <span className="font-bold">${(tcNum + offsetDisplay).toFixed(3)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Costo de red</span>
-              <span>{NETWORK_COST} USDT</span>
-            </div>
-          </div>
-        )}
-
-        {/* Resultado */}
-        <div className="text-center text-xl font-semibold">
-          {isNaN(usdtAmount)
-            ? '0.000 USDT'
-            : `${usdtAmount.toFixed(3)} USDT`
+        <div className="text-lg font-semibold">
+          {isNaN(usdtCliente)
+            ? '0.000 USDT'
+            : `${usdtCliente.toFixed(3)} USDT`
           }
         </div>
 
-        {/* Folio */}
         {lastFolio && (
-          <div className="text-center text-sm">
-            Folio: <span className="font-mono">{lastFolio}</span>
-          </div>
+          <div className="text-sm">Folio: <code>{lastFolio}</code></div>
         )}
       </div>
 
-      {/* ─── Botón Firmar fuera del recuadro ───────────────────────────────── */}
+      {/* ─── Operador ───────────────────────────────────────────────────── */}
+      <div
+        className="max-w-sm mx-auto p-4 rounded-xl shadow-lg text-white text-center space-y-4"
+        style={{ background: op.color }}
+      >
+        {/* Logo ×2 */}
+        <img
+          src="https://i.ibb.co/nThZb3q/NOVACOIN-1.png"
+          alt="NovaCoin"
+          className="mx-auto mb-2 w-64"
+        />
+        <h2 className="text-xl font-bold">NovaCoin · Operador</h2>
+
+        <div className="flex justify-center items-center gap-2">
+          <label className="w-24 text-right">Operador:</label>
+          <select
+            value={operator}
+            onChange={e => setOperator(e.target.value)}
+            className="w-32 px-2 py-1 rounded border border-white bg-white text-black text-center"
+          >
+            {OPERATORS.map(o =>
+              <option key={o.name}>{o.name}</option>
+            )}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-center items-center gap-2">
+            <label className="w-24 text-right">Depositado:</label>
+            <input
+              type="text"
+              value={depositRaw}
+              onChange={e => setDepositRaw(e.target.value)}
+              onBlur={handleBlur}
+              onFocus={handleFocus}
+              className="w-28 px-2 py-1 rounded border border-white bg-white text-black text-center"
+            />
+          </div>
+          <div className="flex justify-center items-center gap-2">
+            <label className="w-24 text-right">Precio Spot:</label>
+            <input
+              type="number"
+              value={tcRaw}
+              onChange={e => setTcRaw(e.target.value)}
+              className="w-28 px-2 py-1 rounded border border-white bg-white text-black text-center"
+            />
+          </div>
+        </div>
+
+        <div className="text-sm bg-white bg-opacity-30 p-2 rounded space-y-1">
+          <div>Precio spot: ${tcNum.toFixed(3)}</div>
+          <div>Costo final: ${(tcNum + offsetDisplay).toFixed(3)}</div>
+          <div>Costo de red: {NETWORK_COST} USDT</div>
+        </div>
+
+        <div className="text-lg font-semibold">
+          {isNaN(usdtOperador)
+            ? '0.000 USDT'
+            : `${usdtOperador.toFixed(3)} USDT`
+          }
+        </div>
+
+        {lastFolio && (
+          <div className="text-sm">Folio: <code>{lastFolio}</code></div>
+        )}
+      </div>
+
+      {/* ─── Botón Firmar ────────────────────────────────────────────────── */}
       <div className="max-w-sm mx-auto text-center">
         <button
           onClick={handleSign}
@@ -216,9 +209,9 @@ export default function OperationTab() {
         </button>
       </div>
 
-      {/* ─── Historial de Cotizaciones (más ancho) ──────────────────────────── */}
+      {/* ─── Historial de Cotizaciones ──────────────────────────────────── */}
       <div className="max-w-xl mx-auto p-4 rounded-xl shadow-lg bg-[#0f0d33] text-white space-y-3">
-        <h3 className="text-sm font-medium">Historial de Cotizaciones</h3>
+        <h3 className="text-sm font-medium text-center">Historial de Cotizaciones</h3>
 
         {/* Filtros */}
         <div className="flex gap-2 text-xs mb-2">
@@ -245,7 +238,7 @@ export default function OperationTab() {
           >
             <option value="all">Todos operadores</option>
             {OPERATORS.map(o => (
-              <option key={o.name} value={o.name}>{o.name}</option>
+              <option key={o.name}>{o.name}</option>
             ))}
           </select>
         </div>
@@ -280,7 +273,7 @@ export default function OperationTab() {
               ))}
               {filteredHistory.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-2 text-gray-500">
+                  <td colSpan={8} className="text-center py-2 text-gray-400">
                     Sin cotizaciones
                   </td>
                 </tr>
