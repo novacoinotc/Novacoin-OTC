@@ -1,4 +1,3 @@
-// src/components/TabNavigation.js
 import React from 'react';
 
 const TabNavigation = ({ activeTab, setActiveTab }) => {
@@ -7,7 +6,7 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
     { id: 2, name: 'Base de Clientes' },
     { id: 3, name: 'Movimientos' },
     { id: 4, name: 'Operación' },
-    { id: 5, name: 'BITSO' },
+    { id: 5, name: 'BITSO' }   // ← mantenemos BITSO
   ];
 
   return (
@@ -19,8 +18,8 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
             onClick={() => setActiveTab(tab.id)}
             className={`
               px-6 py-2 rounded-full transition-all duration-300
-              ${activeTab === tab.id
-                ? 'bg-black text-white'
+              ${activeTab === tab.id 
+                ? 'bg-black text-white' 
                 : 'text-gray-600 hover:bg-gray-100'
               }
             `}
