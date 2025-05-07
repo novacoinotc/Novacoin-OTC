@@ -1,6 +1,5 @@
 // src/components/BitsoPanel.js
 import React, { useState, useEffect } from 'react';
-import CryptoJS from 'crypto-js';
 
 export default function BitsoPanel() {
   const [balances, setBalances] = useState(null);
@@ -16,8 +15,8 @@ export default function BitsoPanel() {
         const nonce  = Math.floor(Date.now() / 1000).toString();
         const method = 'GET';
         const path   = '/v3/balance/';
-        // Firmamos: nonce + método + ruta
-        const signature = CryptoJS
+        // Usamos window.CryptoJS (cargado dinámicamente en index.js)
+        const signature = window.CryptoJS
           .HmacSHA256(nonce + method + path, API_SECRET)
           .toString();
 
