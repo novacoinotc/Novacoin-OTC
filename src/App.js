@@ -1,12 +1,12 @@
 // src/App.js
 import React, { useState, useEffect } from 'react'
+import Login from './components/Login'                  // ← Importa tu nuevo componente de login
 import LayoutHeader   from './components/LayoutHeader'
 import TabNavigation  from './components/TabNavigation'
 import GeneralBalanceView from './components/GeneralBalanceView'
 import ClientsDatabase   from './components/ClientsDatabase'
 import TransactionsView  from './components/TransactionsView'
 import BinanceBotPanel   from './components/BinanceBotPanel'
-// IMPORTA sólo OperationTab
 import OperationTab      from './components/OperationTab'
 
 import { db } from './firebase/config'
@@ -14,19 +14,22 @@ import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore'
 import { uploadClientsToFirebase } from './firebase/firebaseUploader'
 
 const App = () => {
+  // Estado de sesión
+  const [user, setUser] = useState(null)
+  // Sólo cargamos datos de Firebase cuando ya estamos autenticados
   const [activeTab, setActiveTab] = useState(1)
   const [clients, setClients]     = useState([])
   const [syncMessage, setSyncMessage] = useState('')
 
-  // 🔁 Escuchar cambios en Firebase
   useEffect(() => {
+    if (!user) return
     const unsubscribe = onSnapshot(collection(db, 'clients'), async snapshot => {
       const updated = await Promise.all(
         snapshot.docs.map(async docSnap => {
           const c = docSnap.data()
           c.id = docSnap.id
-          c.createdAt  = c.createdAt  ? new Date(c.createdAt)  : new Date()
-          c.lastUpdated= c.lastUpdated? new Date(c.lastUpdated): c.createdAt
+          c.createdAt   = c.createdAt   ? new Date(c.createdAt)    : new Date()
+          c.lastUpdated = c.lastUpdated ? new Date(c.lastUpdated)  : c.createdAt
 
           const txSnap = await getDocs(collection(doc(db,'clients',c.id),'transactions'))
           c.transactions = txSnap.docs.map(tx => {
@@ -37,34 +40,25 @@ const App = () => {
           return c
         })
       )
-
-      // ordenar por última actualización
-      updated.sort((a,b) => {
-        const ta = new Date(b.lastUpdated||b.createdAt).getTime()
-        const tb = new Date(a.lastUpdated||a.createdAt).getTime()
-        return ta - tb
-      })
-
+      updated.sort((a,b) => (new Date(b.lastUpdated||b.createdAt) - new Date(a.lastUpdated||a.createdAt)))
       setClients(updated)
     })
-
     return () => unsubscribe()
-  }, [])
+  }, [user])
 
-  // 🔼 Subir cambios manuales
   const updateClients = async newClients => {
-    const sorted = [...newClients].sort((a,b) => {
-      const ta = new Date(b.lastUpdated||b.createdAt).getTime()
-      const tb = new Date(a.lastUpdated||a.createdAt).getTime()
-      return ta - tb
-    })
-    setClients(sorted)
+    setClients(newClients)
     try {
-      await uploadClientsToFirebase(sorted)
+      await uploadClientsToFirebase(newClients)
       setSyncMessage(`✅ Sincronizado: ${new Date().toLocaleTimeString()}`)
     } catch {
       setSyncMessage('❌ Error al sincronizar con Firebase')
     }
+  }
+
+  // Si no hay usuario, mostramos sólo la pantalla de login
+  if (!user) {
+    return <Login onLogin={setUser} />
   }
 
   return (
@@ -83,7 +77,6 @@ const App = () => {
         {activeTab === 2 && <ClientsDatabase clients={clients} updateClients={updateClients} />}
         {activeTab === 3 && <TransactionsView clients={clients} />}
         {activeTab === 4 && <BinanceBotPanel />}
-        {/* ← Sólo un componente OperationTab */}
         {activeTab === 5 && <OperationTab />}
       </div>
     </div>
