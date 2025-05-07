@@ -5,43 +5,23 @@ export default function BitsoPanel() {
   const [balances, setBalances] = useState(null);
   const [error, setError]       = useState('');
 
-  // Leemos la API key y el secret del .env
-  const API_KEY    = process.env.REACT_APP_BITSO_API_KEY;
-  const API_SECRET = process.env.REACT_APP_BITSO_API_SECRET;
-
   useEffect(() => {
     const fetchBalance = async () => {
       try {
-        const nonce  = Math.floor(Date.now() / 1000).toString();
-        const method = 'GET';
-        const path   = '/v3/balance/';
-        // Usamos window.CryptoJS (cargado dinámicamente en index.js)
-        const signature = window.CryptoJS
-          .HmacSHA256(nonce + method + path, API_SECRET)
-          .toString();
-
-        const res = await fetch(`https://api.bitso.com${path}`, {
-          method,
-          headers: {
-            'Authorization': `Bitso ${API_KEY}:${signature}`,
-            'Bitso-Nonce':   nonce,
-            'Content-Type':  'application/json'
-          }
-        });
-
+        const res = await fetch('/api/bitso-balance');
         const data = await res.json();
-        if (!data.success) {
-          throw new Error(data.error?.message || 'Error en Bitso');
+        if (res.ok) {
+          setBalances(data);
+        } else {
+          throw new Error(data.error || 'Error al obtener saldo');
         }
-
-        setBalances(data.payload);
       } catch (e) {
-        setError(e.message || 'Error de red');
+        setError(e.message || 'Error de conexión');
       }
     };
 
     fetchBalance();
-  }, [API_KEY, API_SECRET]);
+  }, []);
 
   return (
     <div className="bg-white shadow-lg rounded-xl p-4">
