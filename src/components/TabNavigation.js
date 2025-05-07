@@ -6,9 +6,8 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
     { id: 1, name: 'Saldo General' },
     { id: 2, name: 'Base de Clientes' },
     { id: 3, name: 'Movimientos' },
-    { id: 4, name: 'BOT BINANCE' },
-    { id: 5, name: 'Operación' },
-    { id: 6, name: 'BITSO' }   // ← nueva pestaña
+    { id: 4, name: 'Operación' },
+    { id: 5, name: 'BITSO' },
   ];
 
   return (
@@ -20,8 +19,8 @@ const TabNavigation = ({ activeTab, setActiveTab }) => {
             onClick={() => setActiveTab(tab.id)}
             className={`
               px-6 py-2 rounded-full transition-all duration-300
-              ${activeTab === tab.id 
-                ? 'bg-black text-white' 
+              ${activeTab === tab.id
+                ? 'bg-black text-white'
                 : 'text-gray-600 hover:bg-gray-100'
               }
             `}
