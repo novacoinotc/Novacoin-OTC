@@ -1,113 +1,80 @@
-import React, { useEffect, useState } from 'react';
+// src/components/BitsoPanel.js
+import React, { useState, useEffect } from 'react';
 
-const BinanceBotPanel = () => {
-  const [ads, setAds] = useState([]);
-  const [botActive, setBotActive] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [lastUpdate, setLastUpdate] = useState(null);
+export default function BitsoPanel() {
+  const [balances, setBalances] = useState([]);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(true);
 
-  const fetchAds = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch('/api/get-my-ads');
-      const data = await res.json();
-
-      if (Array.isArray(data.data)) {
-        setAds(data.data);
-        setLastUpdate(new Date().toLocaleTimeString());
-      } else {
-        setAds([]);
-        setError('No se encontraron anuncios activos.');
-      }
-    } catch (err) {
-      setAds([]);
-      setError('Error de conexión al cargar los anuncios.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updatePrice = async (adId, newPrice) => {
-    await fetch('/api/update-my-price', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ adId, price: newPrice }),
-    });
-  };
-
-  const simulateLowestPrice = async () => {
-    for (const ad of ads) {
-      const newPrice = (Number(ad.price) - 0.01).toFixed(2);
-      await updatePrice(ad.advertisementId, newPrice);
-    }
-  };
+  // Asegúrate de tener en tu .env:
+  // REACT_APP_BITSO_API_KEY=tzbquXnVVT
+  // REACT_APP_BITSO_API_SECRET=f4a9232db5fe441b467019690c456327
+  const API_KEY    = process.env.REACT_APP_BITSO_API_KEY;
+  const API_SECRET = process.env.REACT_APP_BITSO_API_SECRET;
 
   useEffect(() => {
-    fetchAds(); // carga inicial
+    async function fetchBalances() {
+      setLoading(true);
+      setError('');
+      try {
+        const nonce       = Date.now().toString();
+        const method      = 'GET';
+        const requestPath = '/v3/balance/';
+        // CryptoJS viene de tu <script> en index.js
+        const signature = CryptoJS.HmacSHA256(
+          nonce + method + requestPath,
+          API_SECRET
+        ).toString(CryptoJS.enc.Hex);
 
-    if (botActive) {
-      const interval = setInterval(() => {
-        fetchAds();
-        simulateLowestPrice();
-      }, 10000);
-      return () => clearInterval(interval);
+        const res = await fetch(`https://api.bitso.com${requestPath}`, {
+          method,
+          headers: {
+            Authorization: `Bitso ${API_KEY}:${signature}`,
+            'Bitso-Nonce': nonce,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const json = await res.json();
+        if (!json.success) {
+          throw new Error(json.error?.message || 'Error desconocido');
+        }
+        setBalances(json.payload.balances);
+      } catch (err) {
+        console.error(err);
+        setError(err.message || 'Error al cargar balances');
+      } finally {
+        setLoading(false);
+      }
     }
-  }, [botActive]);
+
+    fetchBalances();
+  }, [API_KEY, API_SECRET]);
+
+  if (loading) return <p className="text-sm text-gray-500">Cargando balances...</p>;
+  if (error)   return <p className="text-red-500">{error}</p>;
 
   return (
-    <div className="bg-white shadow rounded-xl p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Bot de Precio Más Bajo (Binance P2P)</h2>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={fetchAds}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-          >
-            🔄 Refrescar
-          </button>
-          <button
-            onClick={() => setBotActive(!botActive)}
-            className={`px-3 py-1 text-sm rounded text-white ${botActive ? 'bg-red-600' : 'bg-green-600'}`}
-          >
-            {botActive ? 'Detener Bot' : 'Activar Bot'}
-          </button>
-        </div>
-      </div>
-
-      {lastUpdate && (
-        <p className="text-sm text-gray-500 mb-2">Última sincronización: {lastUpdate}</p>
-      )}
-
-      {loading ? (
-        <p className="text-gray-500 text-sm">Cargando anuncios...</p>
-      ) : error ? (
-        <p className="text-red-500 text-sm">{error}</p>
-      ) : ads.length === 0 ? (
-        <p className="text-gray-500 text-sm">No se encontraron anuncios.</p>
-      ) : (
-        <table className="w-full text-sm mt-4">
-          <thead>
-            <tr className="bg-gray-100 text-left">
-              <th className="p-2">ID</th>
-              <th className="p-2">Activo</th>
-              <th className="p-2">Precio</th>
+    <div className="bg-white shadow-lg rounded-xl p-4">
+      <h2 className="text-xl font-bold mb-4">Bitso · Saldo de Cuenta</h2>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gray-100 text-left">
+            <th className="p-2">Moneda</th>
+            <th className="p-2 text-right">Disponible</th>
+            <th className="p-2 text-right">Reservado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {balances.map(b => (
+            <tr key={b.currency} className="border-b">
+              <td className="p-2">{b.currency}</td>
+              <td className="p-2 text-right">{parseFloat(b.available).toLocaleString()}</td>
+              <td className="p-2 text-right">{parseFloat(b.reserved).toLocaleString()}</td>
             </tr>
-          </thead>
-          <tbody>
-            {ads.map((ad) => (
-              <tr key={ad.advertisementId} className="border-b">
-                <td className="p-2">{ad.advertisementId}</td>
-                <td className="p-2">{ad.asset}</td>
-                <td className="p-2">${ad.price}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+          ))}
+        </tbody>
+      </table>
     </div>
   );
-};
-
-export default BinanceBotPanel;
+}
