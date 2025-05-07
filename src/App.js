@@ -1,14 +1,13 @@
 // src/App.js
 import React, { useState, useEffect } from 'react'
-import Login             from './components/Login'
-import LayoutHeader      from './components/LayoutHeader'
-import TabNavigation     from './components/TabNavigation'
-import GeneralBalanceView from './components/GeneralBalanceView'
-import ClientsDatabase   from './components/ClientsDatabase'
-import TransactionsView  from './components/TransactionsView'
-import BinanceBotPanel   from './components/BinanceBotPanel'
-import OperationTab      from './components/OperationTab'
-import BitsoPanel        from './components/BitsoPanel'   // ← Nueva pestaña BITSO
+import Login               from './components/Login'
+import LayoutHeader        from './components/LayoutHeader'
+import TabNavigation       from './components/TabNavigation'
+import GeneralBalanceView  from './components/GeneralBalanceView'
+import ClientsDatabase     from './components/ClientsDatabase'
+import TransactionsView    from './components/TransactionsView'
+import OperationTab        from './components/OperationTab'
+import BitsoPanel          from './components/BitsoPanel'   // ← BITSO
 
 import { db } from './firebase/config'
 import { collection, doc, getDocs, onSnapshot } from 'firebase/firestore'
@@ -17,12 +16,13 @@ import { uploadClientsToFirebase } from './firebase/firebaseUploader'
 const App = () => {
   // Estado de sesión
   const [user, setUser] = useState(null)
-  // Estado de pestaña activa y datos de clientes
+
+  // Estado de pestaña activa y datos
   const [activeTab, setActiveTab] = useState(1)
-  const [clients, setClients] = useState([])
+  const [clients, setClients]     = useState([])
   const [syncMessage, setSyncMessage] = useState('')
 
-  // Carga de datos solo cuando hay usuario
+  // Carga datos solo si hay usuario
   useEffect(() => {
     if (!user) return
     const unsubscribe = onSnapshot(collection(db, 'clients'), async snapshot => {
@@ -42,7 +42,7 @@ const App = () => {
           return c
         })
       )
-      // Ordenar por última actualización
+      // ordenar por última actualización
       updated.sort((a, b) => {
         const ta = (b.lastUpdated || b.createdAt).getTime()
         const tb = (a.lastUpdated || a.createdAt).getTime()
@@ -53,7 +53,7 @@ const App = () => {
     return () => unsubscribe()
   }, [user])
 
-  // Función para actualizar clientes manualmente
+  // Subida manual de cambios
   const updateClients = async newClients => {
     setClients(newClients)
     try {
@@ -64,7 +64,7 @@ const App = () => {
     }
   }
 
-  // Si no hay usuario, mostrar login
+  // Si no hay usuario, solo login
   if (!user) {
     return <Login onLogin={setUser} />
   }
@@ -84,9 +84,8 @@ const App = () => {
         {activeTab === 1 && <GeneralBalanceView clients={clients} />}
         {activeTab === 2 && <ClientsDatabase clients={clients} updateClients={updateClients} />}
         {activeTab === 3 && <TransactionsView clients={clients} />}
-        {activeTab === 4 && <BinanceBotPanel />}
-        {activeTab === 5 && <OperationTab />}
-        {activeTab === 6 && <BitsoPanel />}  {/* ← Pestaña BITSO */}
+        {activeTab === 4 && <OperationTab />}   {/* Operación */}
+        {activeTab === 5 && <BitsoPanel />}     {/* BITSO */}
       </div>
     </div>
   )
