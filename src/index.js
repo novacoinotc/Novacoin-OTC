@@ -7,11 +7,20 @@ import App from "./App";
 // 1) Carga dinámica de CryptoJS desde CDN
 function loadCryptoJS() {
   return new Promise((resolve, reject) => {
-    if (window.CryptoJS) return resolve();
+    // Si ya está cargado, resolvemos de inmediato
+    if (window.CryptoJS) {
+      return resolve();
+    }
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js";
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("No se pudo cargar CryptoJS"));
+    script.onload = () => {
+      console.log("CryptoJS cargado");
+      resolve();
+    };
+    script.onerror = () => {
+      console.error("No se pudo cargar CryptoJS desde CDN");
+      reject(new Error("CryptoJS load failed"));
+    };
     document.head.appendChild(script);
   });
 }
@@ -26,7 +35,7 @@ loadCryptoJS()
       </StrictMode>
     );
   })
-  .catch(err => {
+  .catch((err) => {
     console.error("Error cargando CryptoJS:", err);
     // Aun así montamos la app si falló la carga de CryptoJS
     const root = createRoot(document.getElementById("root"));
